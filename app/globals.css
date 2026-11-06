@@ -26,3 +26,10 @@
 .demo-banner{background:#e5efff url('/assets/new-generated/banners/demo-banner.png') center/cover no-repeat;min-height:245px;padding-left:23%;padding-right:22%}.demo-banner>img{display:none}.demo-banner>div{position:relative;z-index:1}.demo-banner h1{font-size:clamp(26px,3vw,41px)}
 .quiz-mascot-strip{background:#e5efff url('/assets/new-generated/banners/questions-banner.png') center/cover no-repeat}.quiz-mascot-strip>img{visibility:hidden}.demo-results .quiz-mascot-strip{background-image:url('/assets/new-generated/banners/hypotheses-banner.png')}
 @media(max-width:700px){.demo-banner{padding:24px 13px;background-position:center;min-height:245px}.demo-banner>div{background:#f9fbffcf;padding:14px;border-radius:20px}.quiz-mascot-strip{background-position:center}.quiz-mascot-strip>div{background:#f9fbffd6;padding:9px;border-radius:18px}}
+
+/* Keep demo heading inside the central clear area of the illustrated banner. */
+.demo-banner>div{min-width:0;max-width:540px}
+.demo-banner h1{font-size:clamp(23px,2.25vw,32px);line-height:1.12;letter-spacing:-.65px;margin:8px 0}
+.demo-banner p{font-size:clamp(12px,1.05vw,14px);line-height:1.4;margin:6px 0}
+.demo-banner .eyebrow{font-size:11px}
+@media(max-width:700px){.demo-banner h1{font-size:clamp(20px,5vw,25px)}.demo-banner p{font-size:12px}}
