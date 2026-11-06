@@ -72,3 +72,11 @@
 .demo-banner{background-image:url('/assets/new-generated/banners/questions-banner.png')!important;background-size:cover!important;background-position:center!important}
 .demo-banner::before,.demo-banner::after{display:none!important}
 .demo-results .quiz-mascot-strip{background-image:url('/assets/new-generated/banners/profile-top-banner.png')!important;background-size:cover!important;background-position:center!important}
+
+/* Full-width uncropped student selection illustration */
+.demo-screen .demo-banner{display:block!important;width:100%;height:auto!important;min-height:0!important;aspect-ratio:3/1;padding:0!important;border-radius:28px;background-image:url('/assets/new-generated/banners/questions-banner.png')!important;background-size:100% 100%!important;background-repeat:no-repeat!important;background-position:center!important;overflow:hidden}
+.demo-screen .demo-banner::before,.demo-screen .demo-banner::after{display:none!important}
+.demo-banner-caption{text-align:center;margin:18px auto 4px;max-width:760px}
+.demo-banner-caption h1{font-size:clamp(26px,3vw,40px);margin:8px 0;color:#1c2b52}
+.demo-banner-caption p{margin:0;color:#53627d}
+@media(max-width:700px){.demo-screen .demo-banner{border-radius:16px}.demo-banner-caption{padding:0 12px}.demo-banner-caption h1{font-size:25px}}
