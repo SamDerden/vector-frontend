@@ -99,3 +99,9 @@
 .demo-quiz-screen .demo-quiz-heading{margin-top:16px}
 .demo-quiz-screen .illustrated-option{background:#ffffffec}
 @media(max-width:700px){.demo-quiz-screen{padding:0 12px 24px!important}.demo-quiz-hero{margin:0 -12px 10px;aspect-ratio:3/1}.demo-quiz-hero .demo-quiz-intro{width:54%;padding:3px}.demo-quiz-hero .demo-quiz-intro h1{font-size:clamp(13px,3.5vw,21px);margin:3px 0}.demo-quiz-hero .demo-quiz-intro p{display:none}.demo-quiz-hero .demo-quiz-intro .eyebrow{font-size:9px}}
+
+/* Fix: preserve complete demo artwork and mascots instead of cropping them */
+.demo-screen .demo-banner.demo-banner-with-text{width:100%!important;height:auto!important;min-height:0!important;aspect-ratio:3/1!important;padding:0 22%!important;background-image:url('/assets/new-generated/banners/questions-banner.png')!important;background-size:100% 100%!important;background-position:center center!important;background-repeat:no-repeat!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.demo-screen .demo-banner.demo-banner-with-text::before,.demo-screen .demo-banner.demo-banner-with-text::after{display:none!important}
+.demo-banner-with-text .demo-banner-copy{position:relative;z-index:2;max-width:540px;text-align:center}
+@media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{aspect-ratio:3/1!important;height:auto!important;min-height:0!important;padding:0 21%!important}.demo-banner-with-text .demo-banner-copy h1{font-size:clamp(13px,3.2vw,22px)}.demo-banner-with-text .demo-banner-copy p{font-size:clamp(9px,1.8vw,12px)}}
