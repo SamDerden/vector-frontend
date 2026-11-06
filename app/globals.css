@@ -105,3 +105,10 @@
 .demo-screen .demo-banner.demo-banner-with-text::before,.demo-screen .demo-banner.demo-banner-with-text::after{display:none!important}
 .demo-banner-with-text .demo-banner-copy{position:relative;z-index:2;max-width:540px;text-align:center}
 @media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{aspect-ratio:3/1!important;height:auto!important;min-height:0!important;padding:0 21%!important}.demo-banner-with-text .demo-banner-copy h1{font-size:clamp(13px,3.2vw,22px)}.demo-banner-with-text .demo-banner-copy p{font-size:clamp(9px,1.8vw,12px)}}
+
+/* Diagnosis completion: show both mascot images; do not use profile banner with baked-in copy */
+.demo-results .quiz-mascot-strip{background:linear-gradient(115deg,#e5efff 0%,#e9e6ff 48%,#d9f7ff 100%)!important;min-height:245px!important;aspect-ratio:auto!important;padding:12px 16px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px}
+.demo-results .quiz-mascot-strip>img{visibility:visible!important;display:block!important;flex:0 0 23%;width:23%!important;height:230px!important;object-fit:contain!important;object-position:center bottom!important}
+.demo-results .quiz-mascot-strip>div{flex:1!important;min-width:0;max-width:540px!important;margin:auto!important;background:transparent!important;text-align:center!important}
+.demo-results .quiz-mascot-strip h1{font-size:clamp(23px,3vw,39px)!important}
+@media(max-width:700px){.demo-results .quiz-mascot-strip{min-height:190px!important;padding:8px!important;gap:3px}.demo-results .quiz-mascot-strip>img{height:160px!important;flex-basis:24%!important;width:24%!important}.demo-results .quiz-mascot-strip>div{max-width:none!important;padding:0!important}.demo-results .quiz-mascot-strip h1{font-size:clamp(17px,4vw,24px)!important}.demo-results .quiz-mascot-strip p{font-size:11px!important}}
