@@ -80,3 +80,12 @@
 .demo-banner-caption h1{font-size:clamp(26px,3vw,40px);margin:8px 0;color:#1c2b52}
 .demo-banner-caption p{margin:0;color:#53627d}
 @media(max-width:700px){.demo-screen .demo-banner{border-radius:16px}.demo-banner-caption{padding:0 12px}.demo-banner-caption h1{font-size:25px}}
+
+/* Selection hero: crop only the illustration edges and place heading in its open center */
+.demo-screen .demo-banner.demo-banner-with-text{aspect-ratio:auto!important;min-height:260px!important;height:clamp(260px,27vw,365px)!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px 23%!important;background-size:cover!important;background-position:center center!important;border-radius:28px!important}
+.demo-banner-with-text .demo-banner-copy{position:relative;z-index:2;text-align:center;width:100%;max-width:580px;min-width:0}
+.demo-banner-with-text .demo-banner-copy h1{font-size:clamp(25px,2.8vw,39px);line-height:1.12;margin:10px 0;color:#172b52}
+.demo-banner-with-text .demo-banner-copy h1 em{font-style:normal;color:#008d8a}
+.demo-banner-with-text .demo-banner-copy p{font-size:clamp(12px,1.1vw,15px);line-height:1.45;color:#324968;margin:8px 0}
+.demo-banner-with-text .demo-banner-copy .eyebrow{font-size:11px}
+@media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{height:240px!important;min-height:240px!important;padding:18px 16%!important;background-position:center!important}.demo-banner-with-text .demo-banner-copy h1{font-size:23px}.demo-banner-with-text .demo-banner-copy p{font-size:12px}}
