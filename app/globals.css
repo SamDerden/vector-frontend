@@ -67,3 +67,8 @@
 .demo-quiz-screen .demo-quiz-intro{background:#ffffffdc;max-width:570px}
 .demo-quiz-screen .illustrated-option{background:#ffffffed}
 @media(max-width:700px){.demo-banner{min-height:230px;padding:25px 18%}.demo-banner::before,.demo-banner::after{width:23%;opacity:.8}.demo-banner h1{font-size:23px}.demo-banner p{font-size:12px}.quiz-decor{width:35%;height:260px;top:0;opacity:.65}.quiz-decor-left{left:-40px}.quiz-decor-right{right:-40px}.demo-quiz-screen .demo-quiz-intro{max-width:76%;padding:12px}}
+
+/* Banner mapping approved in design review */
+.demo-banner{background-image:url('/assets/new-generated/banners/questions-banner.png')!important;background-size:cover!important;background-position:center!important}
+.demo-banner::before,.demo-banner::after{display:none!important}
+.demo-results .quiz-mascot-strip{background-image:url('/assets/new-generated/banners/profile-top-banner.png')!important;background-size:cover!important;background-position:center!important}
