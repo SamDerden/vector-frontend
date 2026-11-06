@@ -1,0 +1,88 @@
+{
+  "based_on": "Vector_NextJS_Frontend_v4.zip",
+  "question_illustrations": 30,
+  "new_banners": [
+    {
+      "name": "profile-bottom-banner",
+      "path": "public/assets/new-generated/banners/profile-bottom-banner.png",
+      "original": "a_wide_banner_with_a_soft_pastel_gradient_backgrou.png",
+      "bytes": 1718112
+    },
+    {
+      "name": "profile-top-banner",
+      "path": "public/assets/new-generated/banners/profile-top-banner.png",
+      "original": "a_wide_clean_modern_ui_banner_in_a_pastel_purple.png",
+      "bytes": 1641967
+    },
+    {
+      "name": "opportunity-detail-mascot-only",
+      "path": "public/assets/new-generated/banners/opportunity-detail-mascot-only.png",
+      "original": "a_vibrant_clean_digital_illustration_on_a_soft_gr.png",
+      "bytes": 1583120
+    },
+    {
+      "name": "opportunity-detail-mascot-with-heading",
+      "path": "public/assets/new-generated/banners/opportunity-detail-mascot-with-heading.png",
+      "original": "a_clean_vibrant_ui_banner_with_a_soft_gradient_ba.png",
+      "bytes": 1667485
+    },
+    {
+      "name": "opportunity-detail-alternative-full-ui",
+      "path": "public/assets/new-generated/banners/opportunity-detail-alternative-full-ui.png",
+      "original": "a_wide_clean_ui_dashboard_header_page_in_a_glossy.png",
+      "bytes": 2056605
+    },
+    {
+      "name": "hypotheses-banner",
+      "path": "public/assets/new-generated/banners/hypotheses-banner.png",
+      "original": "a_wide_clean_pastel_gradient_ui_background_banner.png",
+      "bytes": 1548066
+    },
+    {
+      "name": "route-banner",
+      "path": "public/assets/new-generated/banners/route-banner.png",
+      "original": "a_wide_clean_high_quality_3d_cartoon_illustratio.png",
+      "bytes": 1936239
+    },
+    {
+      "name": "demo-banner",
+      "path": "public/assets/new-generated/banners/demo-banner.png",
+      "original": "a_wide_horizontal_banner_with_a_soft_pastel_gradie.png",
+      "bytes": 1768531
+    },
+    {
+      "name": "questions-banner",
+      "path": "public/assets/new-generated/banners/questions-banner.png",
+      "original": "a_wide_clean_glossy_3d_cartoon_style_background.png",
+      "bytes": 1595166
+    },
+    {
+      "name": "homepage-hero",
+      "path": "public/assets/new-generated/banners/homepage-hero.png",
+      "original": "a_wide_polished_3d_cg_style_banner_in_the_same_в.png",
+      "bytes": 1945171
+    },
+    {
+      "name": "homepage-alt",
+      "path": "public/assets/new-generated/banners/homepage-alt.png",
+      "original": "a_wide_bright_glossy_3d_cartoon_style_banner_in.png",
+      "bytes": 1896049
+    },
+    {
+      "name": "profile-bottom-alt",
+      "path": "public/assets/new-generated/banners/profile-bottom-alt.png",
+      "original": "a_wide_banner_in_the_same_glossy_3d_cartoon_style.png",
+      "bytes": 1524535
+    },
+    {
+      "name": "profile-cta",
+      "path": "public/assets/new-generated/banners/profile-cta.png",
+      "original": "a_clean_glossy_ui_banner_background_with_a_rounded.png",
+      "bytes": 1466693
+    }
+  ],
+  "portrait_review_count": 39,
+  "other_generated_count": 46,
+  "integration_status": "Assets packaged, not automatically wired into all pages",
+  "warning": "Some banner names are provisional. Portraits need mapping to the 15 demo profiles. Newest 1–4 banner was not generated due to image generation limit."
+}
