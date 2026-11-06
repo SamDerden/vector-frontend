@@ -91,8 +91,8 @@
 @media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{height:240px!important;min-height:240px!important;padding:18px 16%!important;background-position:center!important}.demo-banner-with-text .demo-banner-copy h1{font-size:23px}.demo-banner-with-text .demo-banner-copy p{font-size:12px}}
 
 /* Approved six-question artwork: hero plus continuous illustrated backdrop */
-.demo-quiz-screen{background:#eaf5ff url('/assets/survey-background.jpg') center top/100% 100% no-repeat!important;padding:0 clamp(16px,3vw,46px) 36px!important;overflow:hidden;isolation:isolate}
-.demo-quiz-hero{position:relative;min-height:0;aspect-ratio:3/1;margin:0 calc(-1 * clamp(16px,3vw,46px)) 10px;background:url('/assets/survey-hero.jpg') center center/100% 100% no-repeat;display:flex;align-items:center;justify-content:center}
+.demo-quiz-screen{background:#eaf5ff url('/assets/new-generated/banners/survey-background.jpg') center top/100% 100% no-repeat!important;padding:0 clamp(16px,3vw,46px) 36px!important;overflow:hidden;isolation:isolate}
+.demo-quiz-hero{position:relative;min-height:0;aspect-ratio:3/1;margin:0 calc(-1 * clamp(16px,3vw,46px)) 10px;background:url('/assets/new-generated/banners/survey-hero.jpg') center center/100% 100% no-repeat;display:flex;align-items:center;justify-content:center}
 .demo-quiz-hero .demo-quiz-intro{width:48%;max-width:610px;margin:0!important;padding:12px 14px;background:transparent!important;backdrop-filter:none;text-align:center}
 .demo-quiz-hero .demo-quiz-intro h1{font-size:clamp(23px,2.6vw,40px)}
 .demo-quiz-hero .demo-quiz-intro p{font-size:clamp(12px,1vw,15px)}
