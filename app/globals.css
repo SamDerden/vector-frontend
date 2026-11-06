@@ -49,3 +49,21 @@
 .demo-quiz-screen .demo-quiz-heading{margin-top:22px}
 .demo-quiz-screen .illustrated-option{background:#fffffff2}
 @media(max-width:700px){.demo-quiz-screen{border-radius:24px;padding:22px 12px 30px;background-position:center top}.demo-quiz-intro{margin-bottom:24px;padding:15px 10px}.demo-quiz-intro h1{font-size:27px}.demo-quiz-intro p{font-size:13px}}
+
+/* Correct banner ownership: avoid pre-rendered text in artwork. */
+.demo-banner{background:linear-gradient(112deg,#d8f9f2 0%,#e9ecff 48%,#d9f2ff 100%)!important;position:relative;isolation:isolate;overflow:hidden;min-height:270px;padding:36px 22% 36px 22%}
+.demo-banner::before,.demo-banner::after{content:"";position:absolute;bottom:0;width:22%;height:100%;background-repeat:no-repeat;background-size:contain;background-position:center bottom;z-index:0;pointer-events:none}
+.demo-banner::before{left:0;background-image:url('/assets/age-clean-2.png')}
+.demo-banner::after{right:0;background-image:url('/assets/age-clean-1.png')}
+.demo-banner>div{position:relative;z-index:1;text-align:center;margin:auto}
+.demo-banner h1{font-size:clamp(25px,2.7vw,38px)}
+.demo-banner p{font-size:14px}
+/* Questions share one illustrated background with the answer cards. */
+.demo-quiz-screen{background:linear-gradient(155deg,#e7f9ff 0%,#f0eaff 42%,#e4fff4 100%)!important;position:relative;isolation:isolate;overflow:hidden}
+.quiz-decor{position:absolute;pointer-events:none;z-index:-1;width:clamp(170px,24%,340px);height:490px;top:20px;background-size:contain;background-repeat:no-repeat;opacity:.92}
+.quiz-decor-left{left:-30px;background-image:url('/assets/age-clean-2.png');background-position:left top}
+.quiz-decor-right{right:-30px;background-image:url('/assets/age-clean-1.png');background-position:right top}
+.demo-quiz-screen .demo-quiz-intro,.demo-quiz-screen .demo-quiz-heading,.demo-quiz-screen .progress,.demo-quiz-screen .illustrated-options,.demo-quiz-screen .demo-quiz-actions{position:relative;z-index:1}
+.demo-quiz-screen .demo-quiz-intro{background:#ffffffdc;max-width:570px}
+.demo-quiz-screen .illustrated-option{background:#ffffffed}
+@media(max-width:700px){.demo-banner{min-height:230px;padding:25px 18%}.demo-banner::before,.demo-banner::after{width:23%;opacity:.8}.demo-banner h1{font-size:23px}.demo-banner p{font-size:12px}.quiz-decor{width:35%;height:260px;top:0;opacity:.65}.quiz-decor-left{left:-40px}.quiz-decor-right{right:-40px}.demo-quiz-screen .demo-quiz-intro{max-width:76%;padding:12px}}
