@@ -33,3 +33,10 @@
 .demo-banner p{font-size:clamp(12px,1.05vw,14px);line-height:1.4;margin:6px 0}
 .demo-banner .eyebrow{font-size:11px}
 @media(max-width:700px){.demo-banner h1{font-size:clamp(20px,5vw,25px)}.demo-banner p{font-size:12px}}
+
+/* Expanded illustrated survey hero: preserve the entire mascot artwork. */
+.quiz-mascot-strip{min-height:0;aspect-ratio:3/2;background-size:contain!important;background-repeat:no-repeat!important;background-position:center center!important;background-color:#e5efff;position:relative;padding:24px}
+.quiz-mascot-strip>div{max-width:480px;margin:auto;position:relative;z-index:1}
+.quiz-mascot-strip h1{font-size:clamp(29px,3.3vw,46px);line-height:1.12}
+.quiz-mascot-strip p{font-size:clamp(13px,1.2vw,16px)}
+@media(max-width:700px){.quiz-mascot-strip{aspect-ratio:auto;min-height:360px;background-size:cover!important;background-position:center!important;padding:16px}.quiz-mascot-strip>div{max-width:70%;padding:12px}.quiz-mascot-strip h1{font-size:clamp(22px,5vw,29px)}}
