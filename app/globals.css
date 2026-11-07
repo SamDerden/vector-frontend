@@ -164,3 +164,13 @@
 .demo-speech-sparkle{position:absolute;top:-17px;left:7px;color:#05cdbb;font-size:28px;text-shadow:0 0 13px #10f6dd;line-height:1}
 @media(max-width:950px){.demo-screen .demo-banner.demo-banner-with-text{grid-template-columns:18% minmax(0,1fr) 34%!important;padding:14px 12px 0!important;gap:6px!important}.demo-guide{min-height:170px}.demo-screen .demo-banner .demo-mascot-snegurochka{max-height:210px}.demo-screen .demo-banner .demo-mascot-leshii{max-height:185px}.demo-speech{padding:12px 9px;margin-bottom:25px;font-size:11px;border-radius:18px}}
 @media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{grid-template-columns:24% minmax(0,1fr)!important;grid-template-areas:"snow copy" "guide guide";gap:6px!important;min-height:0!important;padding:15px 12px 0!important}.demo-screen .demo-banner .demo-mascot-snegurochka{grid-area:snow;max-height:175px}.demo-screen .demo-banner .demo-banner-copy{grid-area:copy;padding:8px 0!important}.demo-screen .demo-banner .demo-banner-copy h1{font-size:clamp(20px,5vw,29px)!important}.demo-screen .demo-banner .demo-banner-copy p{font-size:12px!important}.demo-guide{grid-area:guide;justify-self:end;width:min(100%,410px);min-height:125px;align-self:end}.demo-screen .demo-banner .demo-mascot-leshii{width:34%!important;flex-basis:34%;max-height:145px}.demo-speech{font-size:12px;transform:rotate(-2deg);margin:0 8px 18px -3px;padding:13px 14px}}
+
+
+/* Clarification cards: artwork from stable backend answer IDs */
+.demo-quiz-screen .illustrated-option{align-items:stretch;flex-direction:column;padding:0;overflow:hidden;background:#ffffffbf;backdrop-filter:blur(12px);border:1px solid #ffffffdb}
+.demo-quiz-screen .illustrated-option .clarification-option-image{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:contain;background:linear-gradient(130deg,#f3f8ffbb,#f1edffb0);border-radius:0}
+.demo-quiz-screen .illustrated-option .illustrated-option-caption{padding:14px 16px;min-height:74px;align-items:center}
+.demo-quiz-screen .illustrated-option.selected{border:2px solid #00bfa8;background:#ffffffed}
+@media(min-width:1050px){.demo-quiz-screen .illustrated-options{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:701px) and (max-width:1049px){.demo-quiz-screen .illustrated-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.demo-quiz-screen .illustrated-options{grid-template-columns:repeat(2,minmax(0,1fr))}.demo-quiz-screen .illustrated-option .illustrated-option-caption{padding:10px;min-height:80px}}
