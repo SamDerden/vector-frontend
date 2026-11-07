@@ -331,3 +331,7 @@
   .hero-actions .pill{font-size:11px;padding:11px 7px}
   .hero-image{height:285px;flex-basis:285px}
 }
+
+/* Brand mark: faceted triangular arrow, matching the approved Vector identity. */
+.vector-logo-icon{display:block;width:34px;height:34px;flex:0 0 34px;filter:drop-shadow(0 2px 3px #22b8d433)}
+@media(max-width:700px){.vector-logo-icon{width:30px;height:30px;flex-basis:30px}}
