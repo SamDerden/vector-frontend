@@ -441,6 +441,7 @@ export async function executeGenerate(input: {
         source: "catalog",
       })).filter(program => program.id && program.title),
       matchStrength: details?.matchStrength ?? null,
+      industryName: typeof profession?.industry_name === "string" ? profession.industry_name : null,
       catalogProfessionId: details?.catalogProfessionId ?? null,
       trialIds: linkedTrials.map((trial) => String(trial.id)),
       trials: linkedTrials,
