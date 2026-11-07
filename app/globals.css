@@ -314,3 +314,20 @@
 .vector-profession-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
 .vector-profession-options article{padding:17px;border-radius:17px;background:#f0f4ff;border:1px solid #dce4fc}.vector-profession-options article span{display:inline-block;background:#e1ddff;border-radius:14px;padding:5px 9px;font-size:12px;color:#4b3e95}.vector-profession-options article h3{font-size:17px;margin:13px 0 7px}.vector-profession-options article a{font-weight:700;color:#4c3bc6}
 @media(max-width:720px){.vector-profession-overview{grid-template-columns:1fr}.vector-profession-section,.vector-profession-steps{padding:15px}}
+
+
+/* Mobile hero: keep actions and benefits separate from the illustration. */
+@media (max-width:700px){
+  .hero{display:flex;flex-direction:column;align-items:stretch;min-height:0;padding:25px 6% 0;overflow:hidden}
+  .hero-copy{width:100%;flex:0 0 auto}
+  .hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;align-items:stretch}
+  .hero-actions .pill{width:100%;min-width:0;padding:12px 10px;border-radius:25px;font-size:12px;line-height:1.3;box-shadow:0 4px 12px #3436a81c}
+  .hero-actions .play{grid-column:1/-1;justify-content:center;gap:6px;padding:6px 0;font-size:12px;text-align:center}
+  .feature-row{position:relative;z-index:2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0 0}
+  .feature-row span{display:flex;align-items:center;justify-content:center;text-align:center;min-height:34px;padding:7px 6px;font-size:10px;line-height:1.25}
+  .hero-image{position:relative;inset:auto;width:calc(100% + 13.65%);height:330px;flex:0 0 330px;margin:16px -6.82% 0;background-size:cover!important;background-position:center bottom!important;mask-image:none!important}
+}
+@media (max-width:380px){
+  .hero-actions .pill{font-size:11px;padding:11px 7px}
+  .hero-image{height:285px;flex-basis:285px}
+}
