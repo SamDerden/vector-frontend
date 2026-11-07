@@ -360,3 +360,14 @@
  .demo-screen .demo-speech{font-size:10px;padding:10px 12px;margin:0 0 12px -4px}
  .demo-quiz-screen .clarification-bottom>img{width:95px;flex-basis:95px;max-height:115px}
 }
+
+
+/* Results: evidence-based sector distribution rather than repeated answers. */
+.vector-sector-chart{display:flex;flex-direction:column;gap:18px;margin-top:24px}
+.vector-sector-row{min-width:0}
+.vector-sector-label{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:14px;color:#17244d}
+.vector-sector-label strong{overflow-wrap:anywhere}
+.vector-sector-label span{flex-shrink:0;color:#657391;font-size:12px}
+.vector-sector-track{height:13px;border-radius:100px;background:#e2e9f7;overflow:hidden}
+.vector-sector-track>span{display:block;height:100%;border-radius:100px;background:linear-gradient(90deg,#18c6ad,#4467e8);transition:width .3s}
+@media(max-width:700px){.vector-sector-chart{gap:14px}.vector-sector-label{font-size:13px}.vector-sector-track{height:11px}}
