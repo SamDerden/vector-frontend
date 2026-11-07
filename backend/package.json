@@ -15,7 +15,8 @@
     "e2e:mocks:persist": "node scripts/run-mock-students.mjs --persist --ai=3",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
-    "db:seed:mocks": "node scripts/seed-mock-students.mjs"
+    "db:seed:mocks": "node scripts/seed-mock-students.mjs",
+    "db:prepare": "npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "axios": "^1.21.0",
