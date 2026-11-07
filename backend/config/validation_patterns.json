@@ -1,0 +1,56 @@
+{
+  "version": "1.1.0",
+
+  "nothing_fits": [
+    "ничего не подходит",
+    "не нравится",
+    "не моё",
+    "не мое",
+    "не хочу"
+  ],
+  "nothing_fits_case_insensitive": true,
+  "nothing_fits_trim_whitespace": true,
+
+  "attention_check_ids": [
+    "bilet_q13_marathon_name",
+    "bilet_q22_attention_check",
+    "bilet_q24_attention_check",
+    "bilet_q30_chatbot_attention",
+    "bilet_q31_attention_check",
+    "bilet_q33_attention_check_2",
+    "bilet_q9_attention_check",
+    "bilet_q17_attention_check",
+    "bilet_q22_new_rubrics"
+  ],
+  "attention_check_suffixes": [
+    "_attention_check",
+    "_attention_check_2"
+  ],
+
+  "validation_questions": [
+    { "id": "vq_1", "text": "Что тебе нравится делать в свободное время?" },
+    { "id": "vq_2", "text": "Какие школьные предметы даются легче всего?" },
+    { "id": "vq_3", "text": "Какая работа кажется тебе интересной?" }
+  ],
+
+  "forbidden_words_by_tier": {
+    "1-4": [
+      "профессия", "профессии", "вуз", "вузы", "колледж", "колледжи",
+      "зарплата", "зарплаты", "карьера", "шансы", "талант", "способности",
+      "проценты", "успех", "предназначение", "склонность", "склонности",
+      "предрасположен"
+    ],
+    "5-8": [
+      "зарплата", "зарплаты", "вуз", "вузы", "колледж", "колледжи",
+      "шансы", "предназначение", "склонность", "склонности", "предрасположен",
+      "востребован"
+    ],
+    "9-11": [
+      "шансы", "подходишь на", "предназначение", "склонность", "склонности",
+      "предрасположен", "востребован"
+    ]
+  },
+  "forbidden_words_case_insensitive": true,
+
+  "notes": "attention_check_ids — проверочные вопросы из bilet_questions_master.json, их не отправляем в LLM как сигнал. attention_check_suffixes — страховка на будущее: если появится новый *_attention_check, его поймает суффикс. nothing_fits сравнивается без учёта регистра и с обрезкой пробелов, потому что в данных встречается и «Ничего не подходит», и «ничего не подходит»."
+}

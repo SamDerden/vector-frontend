@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "schema_field": "meta.schema",
+  "schema_version": "hybrid_v2",
+  "catalog_file": "data/navigator_full_graph.hybrid_v2.json",
+  "profession_id": "profession_id",
+  "industry_id": "industry_id",
+  "industry_name": "industry_name",
+  "what_does_kid": "what_does_kid",
+  "age_descriptions": {
+    "1-4": "description_1_4",
+    "5-8": "description_5_8",
+    "9-11": "description_9_11"
+  },
+  "riasec": "riasec",
+  "programs": "programs",
+  "trials": "trials",
+  "trial_type": {
+    "field": "trial_type",
+    "missing_value": null
+  },
+  "program_profession_fit_level": "fit_level",
+  "trial_profession_skills_checked": "skills_checked",
+  "vacancy_source": "vacancy_history.-1.source_id"
+}

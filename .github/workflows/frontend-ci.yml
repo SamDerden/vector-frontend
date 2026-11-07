@@ -1,0 +1,22 @@
+name: Frontend checks
+on:
+  pull_request:
+  push:
+    branches: [main, integration/backend-2026-11-07]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+        env:
+          BACKEND_INTERNAL_URL: http://localhost:3000
+          NEXT_PUBLIC_API_BASE_URL: ''

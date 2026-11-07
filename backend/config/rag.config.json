@@ -1,0 +1,13 @@
+{
+  "version": "1.2.0",
+  "full_catalog_threshold": 20,
+  "top_k_industries": 5,
+  "top_k_professions": 20,
+  "rrf_k": 60,
+  "min_similarity": 0.2,
+  "lexical_min_similarity": 0.05,
+  "mmr_lambda": 0.72,
+  "enable_riasec_mmr": false,
+  "epsilon": 0.02,
+  "embedding_timeout_ms": 5000
+}
