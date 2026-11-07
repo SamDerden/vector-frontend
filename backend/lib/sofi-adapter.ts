@@ -116,6 +116,8 @@ export type SofiModuleResult = {
   disclaimer?: string;
   interest_tags?: unknown[];
   interestTags?: unknown[];
+  activity_ids?: string[];
+  activityIds?: string[];
   industries?: unknown[];
   hypotheses?: SofiHypothesisSource[];
   generation?: SofiGenerationMeta;
@@ -151,6 +153,7 @@ export type SofiAiPayload = {
   disclaimer: string | null;
   warnings: string[];
   interestTags: unknown[];
+  activityIds: string[];
   industries: unknown[];
   generation: {
     mode: "llm" | "retrieval_only";
@@ -383,6 +386,7 @@ export function adaptSofiResult(
       disclaimer: result.disclaimer ?? null,
       warnings: result.warnings ?? [],
       interestTags: result.interestTags ?? result.interest_tags ?? [],
+      activityIds: result.activityIds ?? result.activity_ids ?? [],
       industries: result.industries ?? [],
       generation,
       hypotheses: payloadHypotheses,
