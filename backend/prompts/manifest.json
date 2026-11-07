@@ -1,0 +1,17 @@
+{
+  "1-4": {
+    "prompt": "nav-1-4@1.0.2",
+    "schema": "tier-1-4@1.0.0",
+    "sha256": "773e738029cccd81553629bf480a11dc8b7235f2138e77e7dc0c22b78340ebb1"
+  },
+  "5-8": {
+    "prompt": "nav-5-8@1.0.2",
+    "schema": "tier-5-8@1.0.0",
+    "sha256": "de5d1c232a9c512003998501942a12545c84795ae198d385eae6b1f4b0d08db8"
+  },
+  "9-11": {
+    "prompt": "nav-9-11@1.0.2",
+    "schema": "tier-9-11@1.0.0",
+    "sha256": "84bf1cb57f0d600421fbce10dbeb3fafb9f649114af36e49388a45fd4ea8276b"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "version": "1.0.0",
+
+  "levels": {
+    "high": {
+      "min_match_strength": 0.75,
+      "min_agreement_levels": 2,
+      "min_independent_answers": 3,
+      "max_empty_share": 0.3,
+      "coverage_gap_allowed": false
+    },
+    "medium": {
+      "min_match_strength": 0.5,
+      "min_agreement_levels": 1,
+      "min_independent_answers": 2,
+      "max_empty_share": 0.6,
+      "coverage_gap_allowed": true
+    },
+    "low": {
+      "min_match_strength": 0.0,
+      "min_agreement_levels": 0,
+      "min_independent_answers": 0,
+      "max_empty_share": 1.0,
+      "coverage_gap_allowed": true
+    }
+  },
+
+  "signals": {
+    "match_strength": {
+      "source": "llm",
+      "description": "strong | moderate | weak из ответа LLM (PDF, R4). Маппинг: strong→1.0, moderate→0.6, weak→0.2.",
+      "mapping": { "strong": 1.0, "moderate": 0.6, "weak": 0.2 }
+    },
+    "agreement_levels": {
+      "source": "postprocessing",
+      "description": "Сколько уровней согласны: 0 — ни профессия, ни отрасль не в топе ретривала; 1 — только один из них; 2 — оба (PDF, стр. 6)."
+    },
+    "independent_answers": {
+      "source": "postprocessing",
+      "description": "Число независимых ответов, которые LLM связал с гипотезой через evidence_refs, без дублей по (questionnaire, question_id)."
+    },
+    "empty_share": {
+      "source": "postprocessing",
+      "description": "Доля ответов «ничего не подходит» / пропусков от общего числа значимых вопросов (без attention-check и validation)."
+    },
+    "coverage_gap": {
+      "source": "postprocessing",
+      "description": "true, если хотя бы один интерес ученика не покрыт каталогом (PDF, F3)."
+    }
+  },
+
+  "level_selection": {
+    "mode": "all_conditions_must_pass",
+    "notes": "Уровень присваивается, только если ВСЕ условия уровня выполнены. Проверяем от high к low; первый подходящий — итог. Если ни один не подошёл (например, empty_share > 0.6 и match_strength = 0.2) — low.",
+    "order": ["high", "medium", "low"]
+  },
+
+  "downgrade_rules": [
+    {
+      "when": "empty_share > max_empty_share",
+      "action": "downgrade_one_level",
+      "notes": "Много пустых ответов → понижаем уверенность. Защита от профиля №11 (28× «ничего не подходит»)."
+    },
+    {
+      "when": "coverage_gap == true && coverage_gap_allowed == false",
+      "action": "downgrade_one_level",
+      "notes": "Интересы не покрыты каталогом → нельзя ставить high."
+    },
+    {
+      "when": "independent_answers < 2",
+      "action": "downgrade_one_level",
+      "notes": "Слишком мало подтверждений — гипотеза держится на одном ответе, это хрупко."
+    }
+  ],
+
+  "notes": "min_agreement_levels — это не «сколько ответов», а «сколько уровней согласны» (0/1/2): профессия в топе ретривала и/или её отрасль в топе отраслей. min_independent_answers — число независимых ответов, подтверждающих гипотезу. max_empty_share и coverage_gap_allowed — из PDF, стр. 6. Уровень выбирается по всем условиям сразу; если что-то не выполнено — downgrade_rules понижают на один уровень (high→medium, medium→low)."
+}

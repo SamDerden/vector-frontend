@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "min_signal_answers": 2,
+  "tiers": [
+    { "id": "1-4", "grade": [1, 4], "track": "explore", "prompt": "nav-1-4",
+      "show": { "interest_tags": true, "activities": true, "professions": false,
+                "programs": false, "salary": false, "confidence": false,
+                "riasec": "none" }, "min_items": 1, "max_items": 3,
+      "max_sentence_words": 10 },
+    { "id": "5-8", "grade": [5, 8], "track": "interests", "prompt": "nav-5-8",
+      "show": { "professions": "short", "programs": false, "salary": false,
+                "confidence": "words", "riasec": "words" }, "min_items": 1,
+      "max_items": 4, "max_sentence_words": 20 },
+    { "id": "9-11", "grade": [9, 11], "track": "known_direction", "prompt": "nav-9-11",
+      "show": { "professions": "full", "programs": true, "salary": true,
+                "confidence": "level", "riasec": "letters+words" }, "min_items": 1,
+      "max_items": 5, "max_sentence_words": 20 }
+  ]
+}

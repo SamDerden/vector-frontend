@@ -1,0 +1,2679 @@
+{
+  "meta": {
+    "schema_version": "0.1",
+    "language": "ru",
+    "created": "2026-10-20",
+    "source_doc": "Методология опроса «Профессиональный навигатор» v0.1",
+    "skippable_default": true,
+    "notes": [
+      "Любой вопрос можно пропустить.",
+      "target_construct: строка для одной шкалы, массив для вопросов с несколькими шкалами.",
+      "Если у варианта есть scores, бэкенд использует его, иначе target_construct и score.",
+      "track: основной трек вопроса; also_in_tracks: в каких ещё треках он показывается (дублировать не нужно).",
+      "order_in_tracks: порядок показа в каждом треке.",
+      "mechanic: swipe, pair_choice, quest_step, coin_distribution плюс single_choice, checklist, maxdiff, scale.",
+      "style_tags: team/solo, structure/freedom; оси считаются как доля team среди team+solo и structure среди structure+freedom."
+    ]
+  },
+  "scoring": {
+    "constructs": {
+      "directions": [
+        "tech",
+        "creative",
+        "help",
+        "nature"
+      ],
+      "riasec": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "style_axes": [
+        "team",
+        "structure",
+        "pace",
+        "breadth"
+      ],
+      "values": [
+        "V1",
+        "V2",
+        "V3",
+        "V4",
+        "V5",
+        "V6"
+      ]
+    },
+    "track_1_4": {
+      "direction_score": "sum(score) / (2 * n_cards)",
+      "show_min": 0.5,
+      "show_max_count": 2,
+      "single_card_direction_requires": "up"
+    },
+    "pair_choice": {
+      "p_k": "points_k / appearances_k",
+      "appearances": {
+        "R": 3,
+        "I": 4,
+        "A": 4,
+        "S": 3,
+        "E": 3,
+        "C": 3
+      }
+    },
+    "coin_distribution": {
+      "c_k": "min(coins_k, 5) / 5"
+    },
+    "quest_step": {
+      "q_k": "sum(raw_k over answered steps) / sum(max_by_construct_k over answered steps)",
+      "min_answered_steps": 6,
+      "totals_for_9_steps": {
+        "R": 4.5,
+        "I": 7.5,
+        "A": 4.5,
+        "S": 8.5,
+        "E": 7,
+        "C": 8.5
+      }
+    },
+    "final_riasec": {
+      "5-8": "r_k = 0.5 * p_k + 0.5 * c_k",
+      "9-11": "r_k = 0.5 * p_k + 0.5 * q_k"
+    },
+    "maxdiff": {
+      "v": "(best - worst) / appearances",
+      "scaled": "(v + 1) / 2"
+    },
+    "profile_clarity": {
+      "formula": "mean(top3 r_k) - mean(bottom3 r_k)",
+      "min_for_hypotheses": 0.15
+    }
+  },
+  "questions": [
+    {
+      "question_id": "q_1_4_00",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 0
+      },
+      "mechanic": "single_choice",
+      "block": "entry",
+      "text": "Ты уже знаешь, кем хочешь стать, когда вырастешь?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Пока не знаю",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Думаю о разном",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Да, знаю",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    },
+    {
+      "question_id": "q_1_4_01",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 1
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится собирать конструктор?",
+      "image_alt": "Ребёнок строит мост или робота из деталей",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "tech",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_02",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 2
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится рисовать и придумывать истории?",
+      "image_alt": "Ребёнок с кистью и альбомом",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "creative",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_03",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 3
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится ухаживать за растениями или животными?",
+      "image_alt": "Ребёнок поливает растение или кормит кота",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "nature",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_04",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 4
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится помогать, когда кому-то трудно?",
+      "image_alt": "Ребёнок помогает другу нести рюкзак",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "help",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_05",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 5
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится узнавать, как устроены игрушки и приборы?",
+      "image_alt": "Ребёнок рассматривает детали игрушки в лупу",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "tech",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_06",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 6
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится петь, танцевать или выступать?",
+      "image_alt": "Дети на сцене",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "creative",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_07",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 7
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "text": "Тебе нравится объяснять другу то, что ты понял?",
+      "image_alt": "Двое детей вместе решают задачу",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "help",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_07b",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 8
+      },
+      "mechanic": "swipe",
+      "block": "swipes",
+      "optional": true,
+      "text": "Тебе нравится наблюдать за птицами, насекомыми или погодой?",
+      "image_alt": "Ребёнок смотрит на птицу в бинокль",
+      "options": [
+        {
+          "value": "left",
+          "label": "Не очень",
+          "score": 0
+        },
+        {
+          "value": "right",
+          "label": "Нравится",
+          "score": 1
+        },
+        {
+          "value": "up",
+          "label": "Очень нравится",
+          "score": 2
+        }
+      ],
+      "target_construct": "nature",
+      "weight": 1
+    },
+    {
+      "question_id": "q_1_4_08",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 9
+      },
+      "mechanic": "single_choice",
+      "block": "experience",
+      "text": "Ты уже ходишь в какой-нибудь кружок или секцию?",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Да, хожу",
+          "score": 0,
+          "experience_tag": "club_current"
+        },
+        {
+          "value": "want",
+          "label": "Нет, но хочу",
+          "score": 0,
+          "experience_tag": "club_wanted"
+        },
+        {
+          "value": "no",
+          "label": "Нет, не хочу",
+          "score": 0,
+          "experience_tag": "club_declined"
+        }
+      ],
+      "target_construct": "experience_tags",
+      "weight": 0
+    },
+    {
+      "question_id": "q_1_4_08a",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 10
+      },
+      "mechanic": "single_choice",
+      "block": "experience",
+      "show_if": {
+        "question_id": "q_1_4_08",
+        "value": "yes"
+      },
+      "text": "Что там делают?",
+      "options": [
+        {
+          "value": "tech",
+          "label": "Технику",
+          "score": 0,
+          "experience_tag": "club_current:tech"
+        },
+        {
+          "value": "creative",
+          "label": "Творчество",
+          "score": 0,
+          "experience_tag": "club_current:creative"
+        },
+        {
+          "value": "help",
+          "label": "Помощь людям",
+          "score": 0,
+          "experience_tag": "club_current:help"
+        },
+        {
+          "value": "nature",
+          "label": "Природу",
+          "score": 0,
+          "experience_tag": "club_current:nature"
+        },
+        {
+          "value": "sport",
+          "label": "Спорт",
+          "score": 0,
+          "experience_tag": "club_current:sport"
+        },
+        {
+          "value": "other",
+          "label": "Другое",
+          "score": 0,
+          "experience_tag": "club_current:other"
+        }
+      ],
+      "target_construct": "experience_tags",
+      "weight": 0
+    },
+    {
+      "question_id": "q_1_4_09",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 11
+      },
+      "mechanic": "scale",
+      "block": "reflection",
+      "text": "Тебе было интересно?",
+      "options": [
+        {
+          "value": "1",
+          "label": "Не очень",
+          "score": 1
+        },
+        {
+          "value": "2",
+          "label": "Нормально",
+          "score": 2
+        },
+        {
+          "value": "3",
+          "label": "Очень интересно",
+          "score": 3
+        }
+      ],
+      "target_construct": "interest_rating",
+      "weight": 0
+    },
+    {
+      "question_id": "q_1_4_10",
+      "track": "1-4",
+      "order_in_tracks": {
+        "1-4": 12
+      },
+      "mechanic": "single_choice",
+      "block": "reflection",
+      "role": "confidence_post",
+      "text": "Ты уже знаешь, кем хочешь стать, когда вырастешь?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Пока не знаю",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Думаю о разном",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Да, знаю",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_00",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 0
+      },
+      "mechanic": "single_choice",
+      "block": "entry",
+      "text": "Как у тебя с мыслями о будущей профессии?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Пока не знаю, с чего начать",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Есть идеи, но сомневаюсь",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Есть идея, я уверен(а)",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_01",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 1,
+        "9-11": 1
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Разобрать старый мотор, чтобы понять, как он устроен",
+          "score": 1,
+          "scores": {
+            "R": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Написать рассказ или текст для школьного журнала",
+          "score": 1,
+          "scores": {
+            "A": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "R": 0.5,
+            "A": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "R",
+        "A"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_02",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 2,
+        "9-11": 2
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Поставить опыт и понять, почему он получился",
+          "score": 1,
+          "scores": {
+            "I": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Помочь однокласснику разобраться в трудной теме",
+          "score": 1,
+          "scores": {
+            "S": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "I": 0.5,
+            "S": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "I",
+        "S"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_03",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 3,
+        "9-11": 3
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Организовать школьный праздник и убедить всех прийти",
+          "score": 1,
+          "scores": {
+            "E": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Составить расписание и список дежурств, чтобы всё шло по плану",
+          "score": 1,
+          "scores": {
+            "C": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "E": 0.5,
+            "C": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "E",
+        "C"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_04",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 4,
+        "9-11": 4
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Починить велосипед",
+          "score": 1,
+          "scores": {
+            "R": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Найти закономерность в таблице с числами",
+          "score": 1,
+          "scores": {
+            "I": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "R": 0.5,
+            "I": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_05",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 5,
+        "9-11": 5
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Нарисовать плакат для школьного события",
+          "score": 1,
+          "scores": {
+            "A": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Провести игру для малышей",
+          "score": 1,
+          "scores": {
+            "S": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "A": 0.5,
+            "S": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "A",
+        "S"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_06",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 6,
+        "9-11": 6
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Придумать, как продать на ярмарке самодельные вещи",
+          "score": 1,
+          "scores": {
+            "E": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Выяснить, почему растение плохо растёт",
+          "score": 1,
+          "scores": {
+            "I": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "E": 0.5,
+            "I": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "E",
+        "I"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_07",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 7,
+        "9-11": 7
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Навести порядок в файлах и таблицах",
+          "score": 1,
+          "scores": {
+            "C": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Собрать модель по чертежу",
+          "score": 1,
+          "scores": {
+            "R": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "C": 0.5,
+            "R": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "C",
+        "R"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_08",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 8,
+        "9-11": 8
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Выслушать друга, которому трудно",
+          "score": 1,
+          "scores": {
+            "S": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Выступить перед классом и убедить всех поддержать идею",
+          "score": 1,
+          "scores": {
+            "E": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "S": 0.5,
+            "E": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "S",
+        "E"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_09",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 9,
+        "9-11": 9
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Снять и смонтировать короткое видео",
+          "score": 1,
+          "scores": {
+            "A": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Проверить большой текст и найти в нём ошибки",
+          "score": 1,
+          "scores": {
+            "C": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "A": 0.5,
+            "C": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "A",
+        "C"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_10",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 10,
+        "9-11": 10
+      },
+      "mechanic": "pair_choice",
+      "block": "anchor_pairs",
+      "text": "Что тебе интереснее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Разобраться, как работает приложение",
+          "score": 1,
+          "scores": {
+            "I": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Придумать для приложения дизайн",
+          "score": 1,
+          "scores": {
+            "A": 1
+          }
+        },
+        {
+          "value": "both",
+          "label": "Оба нравятся",
+          "score": 0.5,
+          "scores": {
+            "I": 0.5,
+            "A": 0.5
+          }
+        },
+        {
+          "value": "neither",
+          "label": "Ни то ни другое",
+          "score": 0,
+          "scores": {}
+        }
+      ],
+      "target_construct": [
+        "I",
+        "A"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_11",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 11
+      },
+      "mechanic": "coin_distribution",
+      "block": "coins",
+      "text": "У тебя 10 монет свободного времени на неделю. Положи их туда, на что хочешь потратить время. Больше 5 монет в одно место класть нельзя.",
+      "total_coins": 10,
+      "max_per_option": 5,
+      "score_note": "score: вклад одной монеты",
+      "options": [
+        {
+          "value": "R",
+          "label": "Мастерить и чинить: работать руками, собирать, ремонтировать, быть на природе",
+          "score": 0.2,
+          "scores": {
+            "R": 0.2
+          }
+        },
+        {
+          "value": "I",
+          "label": "Исследовать: разбираться, как устроено, ставить опыты, искать причины",
+          "score": 0.2,
+          "scores": {
+            "I": 0.2
+          }
+        },
+        {
+          "value": "A",
+          "label": "Творить: рисовать, писать, снимать, играть музыку, придумывать",
+          "score": 0.2,
+          "scores": {
+            "A": 0.2
+          }
+        },
+        {
+          "value": "S",
+          "label": "Помогать и объяснять: общаться, учить, поддерживать",
+          "score": 0.2,
+          "scores": {
+            "S": 0.2
+          }
+        },
+        {
+          "value": "E",
+          "label": "Организовывать и убеждать: запускать проекты, договариваться, вести за собой",
+          "score": 0.2,
+          "scores": {
+            "E": 0.2
+          }
+        },
+        {
+          "value": "C",
+          "label": "Наводить порядок: считать, планировать, проверять, вести записи",
+          "score": 0.2,
+          "scores": {
+            "C": 0.2
+          }
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_12",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 12
+      },
+      "mechanic": "pair_choice",
+      "block": "style",
+      "text": "Как тебе удобнее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Мне лучше работать одному",
+          "score": 0,
+          "scores": {
+            "team": 0
+          }
+        },
+        {
+          "value": "second",
+          "label": "Мне лучше работать в команде",
+          "score": 1,
+          "scores": {
+            "team": 1
+          }
+        }
+      ],
+      "target_construct": "team",
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_13",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 13
+      },
+      "mechanic": "pair_choice",
+      "block": "style",
+      "text": "Как тебе удобнее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Нужна чёткая инструкция",
+          "score": 1,
+          "scores": {
+            "structure": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Люблю придумывать свой способ",
+          "score": 0,
+          "scores": {
+            "structure": 0
+          }
+        }
+      ],
+      "target_construct": "structure",
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_14",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 14
+      },
+      "mechanic": "pair_choice",
+      "block": "style",
+      "text": "Как тебе удобнее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Делаю быстро, по ходу дела",
+          "score": 1,
+          "scores": {
+            "pace": 1
+          }
+        },
+        {
+          "value": "second",
+          "label": "Делаю не спеша и тщательно",
+          "score": 0,
+          "scores": {
+            "pace": 0
+          }
+        }
+      ],
+      "target_construct": "pace",
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_15",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 15
+      },
+      "mechanic": "pair_choice",
+      "block": "style",
+      "text": "Как тебе удобнее?",
+      "options": [
+        {
+          "value": "first",
+          "label": "Могу долго заниматься одним делом",
+          "score": 0,
+          "scores": {
+            "breadth": 0
+          }
+        },
+        {
+          "value": "second",
+          "label": "Люблю пробовать разное",
+          "score": 1,
+          "scores": {
+            "breadth": 1
+          }
+        }
+      ],
+      "target_construct": "breadth",
+      "weight": 1
+    },
+    {
+      "question_id": "q_5_8_16",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 16
+      },
+      "mechanic": "checklist",
+      "block": "experience",
+      "text": "Что ты уже пробовал(а)?",
+      "items": [
+        {
+          "value": "exp_tech_code",
+          "label": "Кружок робототехники или программирования"
+        },
+        {
+          "value": "exp_art",
+          "label": "Рисование, музыка или театр"
+        },
+        {
+          "value": "exp_sport",
+          "label": "Спортивная секция"
+        },
+        {
+          "value": "exp_science",
+          "label": "Научный кружок или олимпиада"
+        },
+        {
+          "value": "exp_volunteer",
+          "label": "Волонтёрство или помощь другим"
+        },
+        {
+          "value": "exp_media",
+          "label": "Блог или видео"
+        },
+        {
+          "value": "exp_nature",
+          "label": "Уход за растениями и животными"
+        },
+        {
+          "value": "exp_organize",
+          "label": "Организовал(а) мероприятие или сбор"
+        },
+        {
+          "value": "exp_make",
+          "label": "Мастерил(а) и чинил(а)"
+        },
+        {
+          "value": "exp_none",
+          "label": "Пока ничего не пробовал(а)",
+          "exclusive": true
+        }
+      ],
+      "options": [
+        {
+          "value": "liked",
+          "label": "Пробовал(а), понравилось",
+          "score": 1
+        },
+        {
+          "value": "disliked",
+          "label": "Пробовал(а), не понравилось",
+          "score": -1
+        },
+        {
+          "value": "not_tried",
+          "label": "Не пробовал(а)",
+          "score": 0
+        }
+      ],
+      "target_construct": "experience_tags",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_17",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 17,
+        "9-11": 26
+      },
+      "mechanic": "single_choice",
+      "block": "constraints",
+      "text": "Как тебе удобнее заниматься?",
+      "options": [
+        {
+          "value": "offline",
+          "label": "Очно",
+          "score": 0,
+          "filter": {
+            "format": "offline"
+          }
+        },
+        {
+          "value": "online",
+          "label": "Онлайн",
+          "score": 0,
+          "filter": {
+            "format": "online"
+          }
+        },
+        {
+          "value": "any",
+          "label": "Любой вариант",
+          "score": 0,
+          "filter": {
+            "format": "any"
+          }
+        }
+      ],
+      "target_construct": "constraint_format",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_18",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 18,
+        "9-11": 27
+      },
+      "mechanic": "single_choice",
+      "block": "constraints",
+      "text": "Сколько времени в неделю ты готов(а) тратить?",
+      "options": [
+        {
+          "value": "lt2",
+          "label": "До 2 часов",
+          "score": 0,
+          "filter": {
+            "hours_per_week": "lt2"
+          }
+        },
+        {
+          "value": "2_5",
+          "label": "От 2 до 5 часов",
+          "score": 0,
+          "filter": {
+            "hours_per_week": "2_5"
+          }
+        },
+        {
+          "value": "gt5",
+          "label": "Больше 5 часов",
+          "score": 0,
+          "filter": {
+            "hours_per_week": "gt5"
+          }
+        }
+      ],
+      "target_construct": "constraint_time",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_19",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 19,
+        "9-11": 28
+      },
+      "mechanic": "single_choice",
+      "block": "constraints",
+      "text": "Где тебе удобнее заниматься?",
+      "options": [],
+      "options_source": "municipalities",
+      "target_construct": "constraint_municipality",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_20",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 20,
+        "9-11": 29
+      },
+      "mechanic": "single_choice",
+      "block": "constraints",
+      "text": "Что с оплатой занятий?",
+      "options": [
+        {
+          "value": "free_only",
+          "label": "Только бесплатно",
+          "score": 0,
+          "filter": {
+            "budget": "free_only"
+          }
+        },
+        {
+          "value": "can_pay",
+          "label": "Могу платить",
+          "score": 0,
+          "filter": {
+            "budget": "can_pay"
+          }
+        }
+      ],
+      "target_construct": "constraint_budget",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_21",
+      "track": "5-8",
+      "order_in_tracks": {
+        "5-8": 21
+      },
+      "mechanic": "single_choice",
+      "block": "reflection",
+      "role": "confidence_post",
+      "text": "Как у тебя теперь с мыслями о будущей профессии?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Пока не знаю, с чего начать",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Есть идеи, но сомневаюсь",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Есть идея, я уверен(а)",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_22",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 22,
+        "9-11": 32
+      },
+      "mechanic": "scale",
+      "block": "reflection",
+      "text": "Ты узнаёшь себя в результате?",
+      "options": [
+        {
+          "value": "1",
+          "label": "Совсем нет",
+          "score": 1
+        },
+        {
+          "value": "2",
+          "label": "Скорее нет",
+          "score": 2
+        },
+        {
+          "value": "3",
+          "label": "Немного",
+          "score": 3
+        },
+        {
+          "value": "4",
+          "label": "Скорее да",
+          "score": 4
+        },
+        {
+          "value": "5",
+          "label": "Да, очень",
+          "score": 5
+        }
+      ],
+      "target_construct": "recognition_rating",
+      "weight": 0
+    },
+    {
+      "question_id": "q_5_8_23",
+      "track": "5-8",
+      "also_in_tracks": [
+        "9-11"
+      ],
+      "order_in_tracks": {
+        "5-8": 23,
+        "9-11": 33
+      },
+      "mechanic": "scale",
+      "block": "reflection",
+      "text": "Помог ли тебе результат понять, что попробовать дальше?",
+      "options": [
+        {
+          "value": "1",
+          "label": "Совсем не помог",
+          "score": 1
+        },
+        {
+          "value": "2",
+          "label": "Скорее не помог",
+          "score": 2
+        },
+        {
+          "value": "3",
+          "label": "Немного помог",
+          "score": 3
+        },
+        {
+          "value": "4",
+          "label": "Скорее помог",
+          "score": 4
+        },
+        {
+          "value": "5",
+          "label": "Очень помог",
+          "score": 5
+        }
+      ],
+      "target_construct": "usefulness_rating",
+      "weight": 0
+    },
+    {
+      "question_id": "q_9_11_00",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 0
+      },
+      "mechanic": "single_choice",
+      "block": "entry",
+      "text": "Что у тебя с выбором дальнейшего пути (колледж, вуз, работа)?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Не знаю, куда идти",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Выбираю между вариантами",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Я решил(а) и хочу проверить",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    },
+    {
+      "question_id": "q_9_11_01",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 11
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_factory",
+      "step": 1,
+      "context": "Ты работаешь на заводе. Утром остановилась линия, которая делает детали.",
+      "text": "Что делаешь первым?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Осматриваю станок и ищу место поломки",
+          "score": 1,
+          "scores": {
+            "R": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Читаю журнал и выясняю, что менялось в последнее время",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "C": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Зову мастера и собираю людей, чтобы вместе решить",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Записываю, что случилось, и передаю по регламенту",
+          "score": 1,
+          "scores": {
+            "C": 1
+          },
+          "style_tags": [
+            "structure"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 1,
+        "I": 1,
+        "A": 0,
+        "S": 1,
+        "E": 0.5,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_02",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 12
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_factory",
+      "step": 2,
+      "text": "Причина найдена: нужна деталь, а на складе её нет. Что предложишь?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Попробую сделать временную деталь на месте",
+          "score": 1,
+          "scores": {
+            "R": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Посчитаю, сколько стоит простой, и выберу самый выгодный вариант",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "C": 0.5
+          },
+          "style_tags": [
+            "structure"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Договорюсь с поставщиком, чтобы привезли быстрее",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "S": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Составлю график, как работать в обход этой линии",
+          "score": 1,
+          "scores": {
+            "C": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "structure"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 1,
+        "I": 0.5,
+        "A": 0,
+        "S": 0.5,
+        "E": 1,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_03",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 13
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_factory",
+      "step": 3,
+      "text": "Как сделать, чтобы это не повторилось?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Придумаю датчик или программу, которые заранее покажут износ",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "R": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Научу смену замечать первые признаки поломки",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "C": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Обновлю инструкцию и чек-лист",
+          "score": 1,
+          "scores": {
+            "C": 1
+          },
+          "style_tags": [
+            "structure"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Предложу руководству план обновления станков",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "freedom",
+            "team"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0.5,
+        "I": 1,
+        "A": 0,
+        "S": 1,
+        "E": 1,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_04",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 14
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_release",
+      "step": 1,
+      "context": "Ты в команде, которая делает приложение. В пятницу запуск. За два часа до релиза находят ошибку в расчётах.",
+      "text": "Что делаешь?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Сам ищу причину в коде и данных",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "R": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Прошу коллег помочь, и мы делим поиск",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Составляю список проверок, чтобы ничего не пропустить",
+          "score": 1,
+          "scores": {
+            "C": 1
+          },
+          "style_tags": [
+            "structure"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Придумываю, как честно сообщить пользователям, если не успеем",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "A": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0.5,
+        "I": 1,
+        "A": 0.5,
+        "S": 1,
+        "E": 0.5,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_05",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 15
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_release",
+      "step": 2,
+      "text": "Заказчик просит изменить дизайн за один день. Что делаешь?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Предлагаю два быстрых варианта оформления",
+          "score": 1,
+          "scores": {
+            "A": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Обсуждаю сроки и приоритеты с заказчиком",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "S": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Честно говорю, что не успеем, и перераспределяю задачи",
+          "score": 1,
+          "scores": {
+            "C": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "structure",
+            "team"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Спрашиваю, что именно важно пользователям",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        }
+      ],
+      "target_construct": [
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0,
+        "I": 0.5,
+        "A": 1,
+        "S": 1,
+        "E": 1,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_06",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 16
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_release",
+      "step": 3,
+      "text": "Релиз прошёл. Чем займёшься дальше?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Соберу отзывы и посмотрю на цифры",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "C": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Отмечу успех с командой",
+          "score": 1,
+          "scores": {
+            "S": 1
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Придумаю новую функцию",
+          "score": 1,
+          "scores": {
+            "A": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Улучшу код, чтобы он работал стабильнее",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "R": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0.5,
+        "I": 1,
+        "A": 1,
+        "S": 1,
+        "E": 0.5,
+        "C": 0.5
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_07",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 17
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_lab",
+      "step": 1,
+      "context": "Ты работаешь в научном центре. В эксперименте получился результат, которого никто не ждал. Завтра к вам придут школьники на экскурсию.",
+      "text": "Что делаешь с результатом?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Повторяю опыт с небольшими изменениями",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "R": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Обсуждаю с коллегой, что могло случиться",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Проверяю записи и методику, нет ли ошибки",
+          "score": 1,
+          "scores": {
+            "C": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Готовлю короткий доклад для команды",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "A": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0.5,
+        "I": 1,
+        "A": 0.5,
+        "S": 1,
+        "E": 1,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_08",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 18
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_lab",
+      "step": 2,
+      "text": "Как покажешь работу школьникам?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Делаю наглядную демонстрацию",
+          "score": 1,
+          "scores": {
+            "A": 1,
+            "R": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Рассказываю простыми словами и отвечаю на вопросы",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "E": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Готовлю презентацию и сценарий экскурсии",
+          "score": 1,
+          "scores": {
+            "E": 1,
+            "A": 0.5
+          },
+          "style_tags": [
+            "structure"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Готовлю таблицу с данными, чтобы всё было точно",
+          "score": 1,
+          "scores": {
+            "C": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        }
+      ],
+      "target_construct": [
+        "R",
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0.5,
+        "I": 0.5,
+        "A": 1,
+        "S": 1,
+        "E": 1,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_09",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 19
+      },
+      "mechanic": "quest_step",
+      "block": "quests",
+      "quest_id": "quest_lab",
+      "step": 3,
+      "text": "Школьник задаёт вопрос, на который ты не знаешь ответа. Что делаешь?",
+      "options": [
+        {
+          "value": "a",
+          "label": "Честно говорю, что не знаю, и предлагаю узнать вместе",
+          "score": 1,
+          "scores": {
+            "S": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "team"
+          ]
+        },
+        {
+          "value": "b",
+          "label": "Записываю вопрос и выясню потом",
+          "score": 1,
+          "scores": {
+            "C": 1,
+            "I": 0.5
+          },
+          "style_tags": [
+            "solo",
+            "structure"
+          ]
+        },
+        {
+          "value": "c",
+          "label": "Предлагаю сразу придумать опыт, который это проверит",
+          "score": 1,
+          "scores": {
+            "I": 1,
+            "A": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        },
+        {
+          "value": "d",
+          "label": "Перевожу вопрос в шутку и иду дальше",
+          "score": 0.5,
+          "scores": {
+            "E": 0.5,
+            "A": 0.5
+          },
+          "style_tags": [
+            "freedom"
+          ]
+        }
+      ],
+      "target_construct": [
+        "I",
+        "A",
+        "S",
+        "E",
+        "C"
+      ],
+      "max_by_construct": {
+        "R": 0,
+        "I": 1,
+        "A": 0.5,
+        "S": 1,
+        "E": 0.5,
+        "C": 1
+      },
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_10",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 20
+      },
+      "mechanic": "maxdiff",
+      "block": "values",
+      "text": "Представь свою будущую работу. Что для тебя важнее всего, а что важно меньше всего?",
+      "response": {
+        "best_score": 1,
+        "worst_score": -1
+      },
+      "options": [
+        {
+          "value": "V1",
+          "label": "Хорошо зарабатывать",
+          "score": 1,
+          "construct": "V1"
+        },
+        {
+          "value": "V2",
+          "label": "Помогать людям и приносить пользу",
+          "score": 1,
+          "construct": "V2"
+        },
+        {
+          "value": "V3",
+          "label": "Надёжная работа и уверенность в завтрашнем дне",
+          "score": 1,
+          "construct": "V3"
+        },
+        {
+          "value": "V4",
+          "label": "Придумывать новое и выражать себя",
+          "score": 1,
+          "construct": "V4"
+        }
+      ],
+      "target_construct": [
+        "V1",
+        "V2",
+        "V3",
+        "V4"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_11",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 21
+      },
+      "mechanic": "maxdiff",
+      "block": "values",
+      "text": "Представь свою будущую работу. Что для тебя важнее всего, а что важно меньше всего?",
+      "response": {
+        "best_score": 1,
+        "worst_score": -1
+      },
+      "options": [
+        {
+          "value": "V1",
+          "label": "Хорошо зарабатывать",
+          "score": 1,
+          "construct": "V1"
+        },
+        {
+          "value": "V2",
+          "label": "Помогать людям и приносить пользу",
+          "score": 1,
+          "construct": "V2"
+        },
+        {
+          "value": "V5",
+          "label": "Самому решать, как и когда работать",
+          "score": 1,
+          "construct": "V5"
+        },
+        {
+          "value": "V6",
+          "label": "Расти, получать признание и новые должности",
+          "score": 1,
+          "construct": "V6"
+        }
+      ],
+      "target_construct": [
+        "V1",
+        "V2",
+        "V5",
+        "V6"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_12",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 22
+      },
+      "mechanic": "maxdiff",
+      "block": "values",
+      "text": "Представь свою будущую работу. Что для тебя важнее всего, а что важно меньше всего?",
+      "response": {
+        "best_score": 1,
+        "worst_score": -1
+      },
+      "options": [
+        {
+          "value": "V3",
+          "label": "Надёжная работа и уверенность в завтрашнем дне",
+          "score": 1,
+          "construct": "V3"
+        },
+        {
+          "value": "V4",
+          "label": "Придумывать новое и выражать себя",
+          "score": 1,
+          "construct": "V4"
+        },
+        {
+          "value": "V5",
+          "label": "Самому решать, как и когда работать",
+          "score": 1,
+          "construct": "V5"
+        },
+        {
+          "value": "V6",
+          "label": "Расти, получать признание и новые должности",
+          "score": 1,
+          "construct": "V6"
+        }
+      ],
+      "target_construct": [
+        "V3",
+        "V4",
+        "V5",
+        "V6"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_13",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 23
+      },
+      "mechanic": "maxdiff",
+      "block": "values",
+      "text": "Представь свою будущую работу. Что для тебя важнее всего, а что важно меньше всего?",
+      "response": {
+        "best_score": 1,
+        "worst_score": -1
+      },
+      "options": [
+        {
+          "value": "V1",
+          "label": "Хорошо зарабатывать",
+          "score": 1,
+          "construct": "V1"
+        },
+        {
+          "value": "V2",
+          "label": "Помогать людям и приносить пользу",
+          "score": 1,
+          "construct": "V2"
+        },
+        {
+          "value": "V3",
+          "label": "Надёжная работа и уверенность в завтрашнем дне",
+          "score": 1,
+          "construct": "V3"
+        },
+        {
+          "value": "V5",
+          "label": "Самому решать, как и когда работать",
+          "score": 1,
+          "construct": "V5"
+        }
+      ],
+      "target_construct": [
+        "V1",
+        "V2",
+        "V3",
+        "V5"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_14",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 24
+      },
+      "mechanic": "maxdiff",
+      "block": "values",
+      "text": "Представь свою будущую работу. Что для тебя важнее всего, а что важно меньше всего?",
+      "response": {
+        "best_score": 1,
+        "worst_score": -1
+      },
+      "options": [
+        {
+          "value": "V1",
+          "label": "Хорошо зарабатывать",
+          "score": 1,
+          "construct": "V1"
+        },
+        {
+          "value": "V2",
+          "label": "Помогать людям и приносить пользу",
+          "score": 1,
+          "construct": "V2"
+        },
+        {
+          "value": "V4",
+          "label": "Придумывать новое и выражать себя",
+          "score": 1,
+          "construct": "V4"
+        },
+        {
+          "value": "V6",
+          "label": "Расти, получать признание и новые должности",
+          "score": 1,
+          "construct": "V6"
+        }
+      ],
+      "target_construct": [
+        "V1",
+        "V2",
+        "V4",
+        "V6"
+      ],
+      "weight": 1
+    },
+    {
+      "question_id": "q_9_11_15",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 25
+      },
+      "mechanic": "checklist",
+      "block": "experience",
+      "text": "Что ты уже пробовал(а)?",
+      "extends": "q_5_8_16",
+      "items": [
+        {
+          "value": "exp_projects",
+          "label": "Участвовал(а) в проектах или олимпиадах"
+        },
+        {
+          "value": "exp_excursion",
+          "label": "Был(а) на экскурсии на предприятии"
+        },
+        {
+          "value": "exp_trial",
+          "label": "Проходил(а) профессиональную пробу"
+        }
+      ],
+      "options": [
+        {
+          "value": "liked",
+          "label": "Пробовал(а), понравилось",
+          "score": 1
+        },
+        {
+          "value": "disliked",
+          "label": "Пробовал(а), не понравилось",
+          "score": -1
+        },
+        {
+          "value": "not_tried",
+          "label": "Не пробовал(а)",
+          "score": 0
+        }
+      ],
+      "target_construct": "experience_tags",
+      "weight": 0
+    },
+    {
+      "question_id": "q_9_11_16",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 30
+      },
+      "mechanic": "single_choice",
+      "block": "constraints",
+      "text": "Нужна ли помощь взрослого, чтобы добраться или записаться?",
+      "options": [
+        {
+          "value": "yes",
+          "label": "Да",
+          "score": 0,
+          "filter": {
+            "helper_needed": true
+          }
+        },
+        {
+          "value": "no",
+          "label": "Нет",
+          "score": 0,
+          "filter": {
+            "helper_needed": false
+          }
+        }
+      ],
+      "target_construct": "constraint_helper",
+      "weight": 0
+    },
+    {
+      "question_id": "q_9_11_17",
+      "track": "9-11",
+      "order_in_tracks": {
+        "9-11": 31
+      },
+      "mechanic": "single_choice",
+      "block": "reflection",
+      "role": "confidence_post",
+      "text": "Что у тебя теперь с выбором дальнейшего пути (колледж, вуз, работа)?",
+      "options": [
+        {
+          "value": "unknown",
+          "label": "Не знаю, куда идти",
+          "score": 0,
+          "segment": "unknown"
+        },
+        {
+          "value": "doubt",
+          "label": "Выбираю между вариантами",
+          "score": 0,
+          "segment": "doubt"
+        },
+        {
+          "value": "sure",
+          "label": "Я решил(а) и хочу проверить",
+          "score": 0,
+          "segment": "sure"
+        }
+      ],
+      "target_construct": "confidence_self",
+      "weight": 0
+    }
+  ]
+}
