@@ -96,6 +96,8 @@ export type SofiHypothesisSource = {
   trialIds?: string[];
   program_ids?: string[];
   programIds?: string[];
+  what_to_try?: string;
+  whatToTry?: string;
 };
 
 export type SofiGenerationMeta = {
@@ -144,6 +146,7 @@ export type SofiAiPayloadHypothesis = {
   trialIds: string[];
   programIds: string[];
   legacyCompatible: boolean;
+  whatToTry?: string;
 };
 
 export type SofiAiPayload = {
@@ -360,6 +363,7 @@ export function adaptSofiResult(
       evidenceRefs,
       trialIds,
       programIds,
+      whatToTry: source.whatToTry ?? source.what_to_try,
       legacyCompatible,
     });
   }
