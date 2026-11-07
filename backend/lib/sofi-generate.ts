@@ -314,6 +314,7 @@ export async function executeGenerate(input: {
     : adapted.aiPayload;
 
   let nextStepOptions: PathwayOption[];
+  const professionOpportunities = new Map<string, PathwayOption[]>();
   if (junior) {
     nextStepOptions = JUNIOR_PATHWAYS;
   } else if (tier === "5-8") {
@@ -351,6 +352,10 @@ export async function executeGenerate(input: {
       opportunities,
       professionIds: [...selectedIds],
     });
+    for (const professionId of selectedIds) {
+      const linked = opportunities.filter(item => item.professionIds.includes(professionId));
+      professionOpportunities.set(professionId, buildPathwayOptions({opportunities:linked,professionIds:[professionId]}).filter(option=>option.available));
+    }
   }
 
   const requestedTrialIds = payload.hypotheses.flatMap((item) => item.trialIds);
@@ -419,6 +424,8 @@ export async function executeGenerate(input: {
       catalogProfessionId: details?.catalogProfessionId ?? null,
       trialIds: linkedTrials.map((trial) => String(trial.id)),
       trials: linkedTrials,
+      opportunities: professionOpportunities.get(hypothesis.professionId) ?? [],
+      whatToTry: details?.whatToTry ?? null,
     };
   });
 
@@ -453,7 +460,7 @@ export async function executeGenerate(input: {
     [
       input.sessionId,
       summary,
-      JSON.stringify(hypotheses),
+      JSON.stringify(publicHypotheses),
       savedTrialIds,
       nextStep,
       JSON.stringify(nextStepOptions),
@@ -482,7 +489,7 @@ export async function executeGenerate(input: {
       recommendationId: result?.id ?? null,
       sessionId: input.sessionId,
       summary,
-      hypotheses,
+      hypotheses: publicHypotheses,
       trials,
       nextStep,
       nextStepOptions,
