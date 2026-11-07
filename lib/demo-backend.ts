@@ -17,13 +17,13 @@ async function request<T>(path:string,session:string,body:unknown):Promise<T>{
 }
 
 /** Separate demo session so demo answers cannot overwrite a real student's session. */
-export async function generateDemoWithBackend(profile:Profile,answers:Answers){
+export async function generateDemoWithBackend(profile:Profile,answers:Answers,own?:{grade:number;track:string}){
   const session=crypto.randomUUID();
   await request("/api/track/select",session,{
-    trackType:"interests",schoolGrade:profile.grade,
+    trackType:own?.track||"interests",schoolGrade:own?.grade||profile.grade,
   });
   const diagnosticAnswers=[
-    {questionId:"demo_profile_interests",answer:[...profile.interests]},
+    ...(own?[]:[{questionId:"demo_profile_interests",answer:[...profile.interests]}]),
     ...demoQuestions.map((q,i)=>({
       questionId:`demo_question_${i+1}`,
       answer:(answers[i]||[]).map(choice=>q.options[choice]),
