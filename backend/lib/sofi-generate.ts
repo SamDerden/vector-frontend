@@ -362,19 +362,24 @@ export async function executeGenerate(input: {
   // Graph trial IDs may not be UUIDs. Resolve them against the same normalized
   // catalog that the AI pipeline used, preserving the profession relationship.
   const graphTrialsById = new Map<string, Record<string, unknown>>();
+  const graphProfessionsById = new Map<string, Record<string, unknown>>();
   try {
     const rawCatalog = await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8");
-    const catalog = JSON.parse(rawCatalog) as { professions?: Array<{ profession_id: string; trials?: Array<Record<string, unknown>> }> };
-    const selected = new Set(payload.hypotheses.map((item) => item.catalogProfessionId));
+    const catalog = JSON.parse(rawCatalog) as { professions?: Array<Record<string, unknown>> };
+    const selected = new Set(payload.hypotheses.map(item => item.catalogProfessionId));
     for (const profession of catalog.professions ?? []) {
-      if (!selected.has(profession.profession_id)) continue;
-      for (const trial of profession.trials ?? []) {
-        const id = trial.trial_id;
-        if (typeof id === "string" && requestedTrialIds.includes(id)) graphTrialsById.set(id, trial);
+      const id = profession.profession_id;
+      if (typeof id !== "string" || !selected.has(id)) continue;
+      graphProfessionsById.set(id, profession);
+      for (const trial of Array.isArray(profession.trials) ? profession.trials : []) {
+        if (!trial || typeof trial !== "object") continue;
+        const record = trial as Record<string, unknown>;
+        const trialId = record.trial_id;
+        if (typeof trialId === "string" && requestedTrialIds.includes(trialId)) graphTrialsById.set(trialId, record);
       }
     }
   } catch (error) {
-    console.warn("Could not resolve graph trials", error instanceof Error ? error.message : "unknown error");
+    console.warn("Could not resolve profession catalog", error instanceof Error ? error.message : "unknown error");
   }
   const uuidTrialIds = [...new Set(requestedTrialIds.filter((id) => isUuid(id)))];
   let savedTrialIds: string[] = [];
@@ -397,7 +402,7 @@ export async function executeGenerate(input: {
     if (dbTrialIds.has(id)) continue;
     trials.push({
       id, title: trial.title ?? "",
-      description: trial.description_9_11 ?? trial.description_5_8 ?? "",
+      description: (tier === "5-8" ? trial.description_5_8 : trial.description_9_11) ?? "",
       format: trial.format ?? null,
       duration_minutes: trial.duration_minutes ?? null,
       municipality: trial.municipality ?? null,
@@ -418,8 +423,22 @@ export async function executeGenerate(input: {
       const trial = trialsById.get(id);
       return trial ? [trial] : [];
     });
+    const profession = details?.catalogProfessionId ? graphProfessionsById.get(details.catalogProfessionId) : undefined;
+    const description = tier === "5-8" ? profession?.description_5_8 : profession?.description_9_11;
+    const skills = Array.isArray(profession?.key_skills) ? profession.key_skills.filter((skill): skill is string => typeof skill === "string") : [];
+    const programs = Array.isArray(profession?.programs) ? profession.programs.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : [];
     return {
       ...hypothesis,
+      description: typeof description === "string" ? description : null,
+      whatDoes: typeof profession?.what_kid_does === "string" ? profession.what_kid_does : null,
+      skills,
+      programs: programs.map(program => ({
+        id: String(program.program_id ?? ""),
+        title: String(program.name ?? ""),
+        level: typeof program.level === "string" ? program.level : null,
+        organization: typeof program.organization_name === "string" ? program.organization_name : (program.organization && typeof program.organization === "object" ? String((program.organization as Record<string,unknown>).name ?? "") : null),
+        source: "catalog",
+      })).filter(program => program.id && program.title),
       matchStrength: details?.matchStrength ?? null,
       catalogProfessionId: details?.catalogProfessionId ?? null,
       trialIds: linkedTrials.map((trial) => String(trial.id)),
