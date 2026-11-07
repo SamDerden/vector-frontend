@@ -1,23 +1,27 @@
-import { readFileSync } from "node:fs";
+import {readFileSync} from "node:fs";
 import assert from "node:assert/strict";
 import test from "node:test";
-
-const page = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
-const api = readFileSync(new URL("../lib/api.ts", import.meta.url), "utf8");
-const config = readFileSync(new URL("../next.config.ts", import.meta.url), "utf8");
-
-test("track selection persists school grade required by backend", () => {
-  assert.match(page, /post\("\/api\/track\/select",\{trackType:track,schoolGrade:grade\}\)/);
+const page=readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
+const backend=readFileSync(new URL("../lib/demo-backend.ts",import.meta.url),"utf8");
+const route=readFileSync(new URL("../backend/app/api/demo/students/route.ts",import.meta.url),"utf8");
+const config=readFileSync(new URL("../next.config.ts",import.meta.url),"utf8");
+test("demo students are served from canonical backend dossiers",()=>{
+ assert.match(route,/getMockStudents/);
+ assert.match(route,/lookupQuestionText/);
+ assert.match(page,/fetchDemoStudents/);
+ assert.match(backend,/input\.dossier\?\.answers/);
 });
-test("session restores school grade", () => {
-  assert.match(page, /s\?\.profile\?\.schoolGrade/);
+test("Sofi receives canonical clarification answers",()=>{
+ assert.match(page,/fetchClarificationQuestions/);
+ assert.match(page,/questionId:q\.question_id/);
+ assert.match(backend,/\/api\/clarification\/submit/);
+ assert.match(backend,/\/api\/recommendations\/generate/);
 });
-test("session requests clarification questions on resume", () => {
-  assert.match(page, /api<\{data:Q\[\]\}>\("\/api\/clarification\/questions"\)/);
+test("own route retains grade-specific baseline diagnosis",()=>{
+ assert.match(page,/\/api\/diagnostic\/questions\?grade=/);
+ assert.match(backend,/\/api\/diagnostic\/submit/);
+ assert.match(backend,/schoolGrade:input\.dossier\?\.grade\?\?input\.grade/);
 });
-test("client forwards stable session header", () => {
-  assert.match(api, /"X-Session-ID":sessionId\(\)/);
-});
-test("same-origin proxy forwards API requests", () => {
-  assert.match(config, /source: "\/api\/:path\*"/);
+test("same-origin API proxy remains configured",()=>{
+ assert.match(config,/source: "\/api\/:path\*"/);
 });
