@@ -140,3 +140,27 @@
  .demo-quiz-heading h2,.work-card h1{overflow-wrap:anywhere}
 }
 @media(max-width:390px){.demo-grid{grid-template-columns:1fr!important}.demo-quiz-screen .demo-quiz-hero{aspect-ratio:auto;min-height:145px}.demo-quiz-screen .demo-quiz-intro{width:80%}}
+
+
+/* Student gallery hero: approved standalone mascots and speech bubble. Scoped to demo only. */
+.demo-screen .demo-banner.demo-banner-with-text{
+  display:grid!important;grid-template-columns:minmax(130px,20%) minmax(0,1fr) minmax(250px,33%)!important;
+  align-items:center!important;gap:12px!important;aspect-ratio:auto!important;
+  min-height:260px!important;height:auto!important;padding:20px 24px 0!important;
+  background:radial-gradient(ellipse at 18% 50%,#d5fbff 0%,transparent 42%),radial-gradient(ellipse at 87% 12%,#ddd9ff 0%,transparent 45%),linear-gradient(115deg,#e7eaff,#e7f4ff 55%,#d5f7f1)!important;
+  border-radius:28px!important;overflow:hidden;isolation:isolate
+}
+.demo-screen .demo-banner.demo-banner-with-text::before,.demo-screen .demo-banner.demo-banner-with-text::after{display:none!important}
+.demo-screen .demo-banner .demo-mascot{display:block!important;position:relative;z-index:1;max-width:100%;width:100%;height:auto;object-fit:contain;object-position:bottom center;pointer-events:none}
+.demo-screen .demo-banner .demo-mascot-snegurochka{align-self:end;max-height:265px}
+.demo-screen .demo-banner .demo-banner-copy{width:100%;max-width:none;min-width:0;margin:0;text-align:left!important;background:transparent!important;padding:0 0 22px!important;backdrop-filter:none}
+.demo-screen .demo-banner .demo-banner-copy h1{font-size:clamp(27px,3.2vw,44px)!important;line-height:1.12!important;letter-spacing:-.9px;margin:0 0 12px!important;color:#101943}
+.demo-screen .demo-banner .demo-banner-copy h1 em{color:#008e87;font-style:normal}
+.demo-screen .demo-banner .demo-banner-copy p{font-size:clamp(13px,1.1vw,16px)!important;line-height:1.5;margin:0!important;color:#172955}
+.demo-guide{position:relative;display:flex;align-items:center;justify-content:flex-start;min-width:0;gap:0;align-self:end;min-height:225px}
+.demo-screen .demo-banner .demo-mascot-leshii{width:48%!important;max-height:245px;flex:0 0 48%;align-self:end}
+.demo-speech{position:relative;z-index:2;flex:1;min-width:0;padding:18px 15px 18px 19px;margin:0 0 38px -8px;border:1px solid #fff;border-radius:26px 26px 26px 7px;background:linear-gradient(145deg,#ffffffed,#f0eaffeb);box-shadow:0 12px 32px #506ab42b;color:#101943;font-size:clamp(11px,1vw,14px);font-weight:700;line-height:1.4;transform:rotate(-3deg)}
+.demo-speech::before{content:"";position:absolute;left:-14px;bottom:22px;width:25px;height:22px;background:#f5efff;clip-path:polygon(100% 0,100% 100%,0 100%)}
+.demo-speech-sparkle{position:absolute;top:-17px;left:7px;color:#05cdbb;font-size:28px;text-shadow:0 0 13px #10f6dd;line-height:1}
+@media(max-width:950px){.demo-screen .demo-banner.demo-banner-with-text{grid-template-columns:18% minmax(0,1fr) 34%!important;padding:14px 12px 0!important;gap:6px!important}.demo-guide{min-height:170px}.demo-screen .demo-banner .demo-mascot-snegurochka{max-height:210px}.demo-screen .demo-banner .demo-mascot-leshii{max-height:185px}.demo-speech{padding:12px 9px;margin-bottom:25px;font-size:11px;border-radius:18px}}
+@media(max-width:700px){.demo-screen .demo-banner.demo-banner-with-text{grid-template-columns:24% minmax(0,1fr)!important;grid-template-areas:"snow copy" "guide guide";gap:6px!important;min-height:0!important;padding:15px 12px 0!important}.demo-screen .demo-banner .demo-mascot-snegurochka{grid-area:snow;max-height:175px}.demo-screen .demo-banner .demo-banner-copy{grid-area:copy;padding:8px 0!important}.demo-screen .demo-banner .demo-banner-copy h1{font-size:clamp(20px,5vw,29px)!important}.demo-screen .demo-banner .demo-banner-copy p{font-size:12px!important}.demo-guide{grid-area:guide;justify-self:end;width:min(100%,410px);min-height:125px;align-self:end}.demo-screen .demo-banner .demo-mascot-leshii{width:34%!important;flex-basis:34%;max-height:145px}.demo-speech{font-size:12px;transform:rotate(-2deg);margin:0 8px 18px -3px;padding:13px 14px}}
