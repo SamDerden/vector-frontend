@@ -437,6 +437,7 @@ export async function executeGenerate(input: {
         title: String(program.name ?? ""),
         level: typeof program.level === "string" ? program.level : null,
         organization: typeof program.organization_name === "string" ? program.organization_name : (program.organization && typeof program.organization === "object" ? String((program.organization as Record<string,unknown>).name ?? "") : null),
+        website: program.organization && typeof program.organization === "object" && typeof (program.organization as Record<string,unknown>).website === "string" ? (program.organization as Record<string,unknown>).website : null,
         source: "catalog",
       })).filter(program => program.id && program.title),
       matchStrength: details?.matchStrength ?? null,
