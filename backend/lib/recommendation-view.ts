@@ -98,6 +98,7 @@ export function sofiPublicFields(row: Record<string, unknown>): Record<string, u
   const generation = readGeneration(payload, row);
   const fields: Record<string, unknown> = {
     interestTags: readInterestTags(payload),
+    activityIds: Array.isArray(payload.activityIds) ? payload.activityIds : Array.isArray(payload.activity_ids) ? payload.activity_ids : [],
     warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
     disclaimer: typeof payload.disclaimer === "string" ? payload.disclaimer : null,
   };
