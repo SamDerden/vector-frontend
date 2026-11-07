@@ -206,7 +206,7 @@ export async function runSofiPipeline(
             }];
           });
       const juniorActivities = tier === "1-4"
-        ? catalog.trials.filter((trial) => isTrialEligibleForGrade(trial, grade))
+        ? catalog.trials.filter((trial) => isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))
         : [];
       const validationContext: ValidationContext = {
         tier,
