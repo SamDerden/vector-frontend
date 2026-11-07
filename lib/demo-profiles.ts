@@ -1,9 +1,8 @@
-export const demoProfiles = [
+/** Portrait filenames follow public/assets/children/portrait_mapping.csv.\n * ID and grade are aligned to backend/data/mock_students_data.json.\n * The source of truth for questionnaires and responses remains the backend. */\nexport const demoProfiles = [
   {
     "id": 1,
     "name": "Аня",
-    "age": 7,
-    "grade": 3,
+    "grade": 2,
     "group": "1–4",
     "interests": [
       "Животные",
@@ -14,8 +13,7 @@ export const demoProfiles = [
   {
     "id": 2,
     "name": "Миша",
-    "age": 8,
-    "grade": 3,
+    "grade": 4,
     "group": "1–4",
     "interests": [
       "Конструкторы",
@@ -26,9 +24,8 @@ export const demoProfiles = [
   {
     "id": 3,
     "name": "Соня",
-    "age": 9,
-    "grade": 3,
-    "group": "1–4",
+    "grade": 6,
+    "group": "5–8",
     "interests": [
       "Чтение",
       "Музыка"
@@ -38,9 +35,8 @@ export const demoProfiles = [
   {
     "id": 4,
     "name": "Егор",
-    "age": 10,
-    "grade": 3,
-    "group": "1–4",
+    "grade": 6,
+    "group": "5–8",
     "interests": [
       "Спорт",
       "Техника"
@@ -50,9 +46,8 @@ export const demoProfiles = [
   {
     "id": 5,
     "name": "Вика",
-    "age": 10,
-    "grade": 3,
-    "group": "1–4",
+    "grade": 7,
+    "group": "5–8",
     "interests": [
       "Видео",
       "Помощь другим"
@@ -62,7 +57,6 @@ export const demoProfiles = [
   {
     "id": 6,
     "name": "Даня",
-    "age": 12,
     "grade": 7,
     "group": "5–8",
     "interests": [
@@ -74,8 +68,7 @@ export const demoProfiles = [
   {
     "id": 7,
     "name": "Полина",
-    "age": 13,
-    "grade": 7,
+    "grade": 8,
     "group": "5–8",
     "interests": [
       "Дизайн",
@@ -86,8 +79,7 @@ export const demoProfiles = [
   {
     "id": 8,
     "name": "Артём",
-    "age": 13,
-    "grade": 7,
+    "grade": 8,
     "group": "5–8",
     "interests": [
       "Анализ данных",
@@ -98,9 +90,8 @@ export const demoProfiles = [
   {
     "id": 9,
     "name": "Настя",
-    "age": 14,
-    "grade": 7,
-    "group": "5–8",
+    "grade": 9,
+    "group": "9–11",
     "interests": [
       "Вокал",
       "Театр"
@@ -110,9 +101,8 @@ export const demoProfiles = [
   {
     "id": 10,
     "name": "Илья",
-    "age": 14,
-    "grade": 7,
-    "group": "5–8",
+    "grade": 9,
+    "group": "9–11",
     "interests": [
       "Наука",
       "Изобретения"
@@ -122,8 +112,7 @@ export const demoProfiles = [
   {
     "id": 11,
     "name": "Саша",
-    "age": 16,
-    "grade": 10,
+    "grade": 9,
     "group": "9–11",
     "interests": [
       "IT и технологии",
@@ -134,7 +123,6 @@ export const demoProfiles = [
   {
     "id": 12,
     "name": "Кира",
-    "age": 16,
     "grade": 10,
     "group": "9–11",
     "interests": [
@@ -146,7 +134,6 @@ export const demoProfiles = [
   {
     "id": 13,
     "name": "Максим",
-    "age": 17,
     "grade": 10,
     "group": "9–11",
     "interests": [
@@ -158,8 +145,7 @@ export const demoProfiles = [
   {
     "id": 14,
     "name": "Лиза",
-    "age": 17,
-    "grade": 10,
+    "grade": 11,
     "group": "9–11",
     "interests": [
       "Графика",
@@ -170,8 +156,7 @@ export const demoProfiles = [
   {
     "id": 15,
     "name": "Роман",
-    "age": 17,
-    "grade": 10,
+    "grade": 11,
     "group": "9–11",
     "interests": [
       "Бизнес",
@@ -179,4 +164,4 @@ export const demoProfiles = [
     ],
     "avatar": "/assets/children/15_Roman.png"
   }
-] as const;
+] as const;\n
