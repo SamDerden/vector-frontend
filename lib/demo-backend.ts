@@ -1,6 +1,6 @@
 import {API_BASE} from "./api";
 export type StudentDossier={studentId:number;grade:number;city:string;questionnaireName:string;answers:Array<{questionId:string;answer:unknown;question:string}>};
-export type ClarificationQuestion={question_id:string;text:string;type:string;max_selections?:number;options:Array<{value:string;label:string;allow_custom_text?:boolean}>};
+export type ClarificationQuestion={question_id:string;text:string;type:string;max_selections?:number;options:Array<{value:string;label:string;allow_custom_text?:boolean;exclusive_with?:string[]}>};
 export async function backendGet<T>(path:string):Promise<T>{
  const response=await fetch(`${API_BASE}${path}`,{cache:"no-store"});
  const payload=await response.json().catch(()=>({}));
