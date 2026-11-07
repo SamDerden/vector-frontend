@@ -205,13 +205,16 @@ export async function runSofiPipeline(
               })),
             }];
           });
+      const juniorActivities = tier === "1-4"
+        ? catalog.trials.filter((trial) => isTrialEligibleForGrade(trial, grade))
+        : [];
       const validationContext: ValidationContext = {
         tier,
         catalogProfessionIds: new Set(Object.keys(candidates)),
         candidateProfessionIds: candidateSet,
         industryIds: new Set(industryCandidateIds),
         answerRefs: postprocessContext.dossierRefs,
-        activityTypes: new Set(),
+        activityTypes: new Set(juniorActivities.map((trial) => trial.trial_id)),
         professionIndustryById: Object.fromEntries(
           catalog.professions.map((profession) => [
             profession.profession_id,
@@ -272,7 +275,14 @@ export async function runSofiPipeline(
                 hit_strength: retrieval.industryScores[industryId] ?? 0,
               })),
               candidates: tierCandidates,
-              activity_types: [],
+              activity_types: juniorActivities.map((trial) => ({
+                activity_id: trial.trial_id,
+                title: trial.title,
+                description: trial.description_1_4,
+                format: trial.format,
+                municipality: trial.municipality,
+                cost: trial.cost,
+              })),
             }),
           },
         ],
@@ -290,6 +300,7 @@ export async function runSofiPipeline(
           summary: data.summary,
           industries: [],
           interest_tags: data.interest_tags,
+          activity_ids: data.activity_ids,
           hypotheses: [],
           next_step: data.next_step,
           warnings: [...new Set([
