@@ -1,4 +1,6 @@
 import type { PoolClient } from "pg";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 import questionnaireByGrade from "../config/questionnaire_by_grade.json" with { type: "json" };
 import {
@@ -352,6 +354,23 @@ export async function executeGenerate(input: {
   }
 
   const requestedTrialIds = payload.hypotheses.flatMap((item) => item.trialIds);
+  // Graph trial IDs may not be UUIDs. Resolve them against the same normalized
+  // catalog that the AI pipeline used, preserving the profession relationship.
+  const graphTrialsById = new Map<string, Record<string, unknown>>();
+  try {
+    const rawCatalog = await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8");
+    const catalog = JSON.parse(rawCatalog) as { professions?: Array<{ profession_id: string; trials?: Array<Record<string, unknown>> }> };
+    const selected = new Set(payload.hypotheses.map((item) => item.catalogProfessionId));
+    for (const profession of catalog.professions ?? []) {
+      if (!selected.has(profession.profession_id)) continue;
+      for (const trial of profession.trials ?? []) {
+        const id = trial.trial_id;
+        if (typeof id === "string" && requestedTrialIds.includes(id)) graphTrialsById.set(id, trial);
+      }
+    }
+  } catch (error) {
+    console.warn("Could not resolve graph trials", error instanceof Error ? error.message : "unknown error");
+  }
   const uuidTrialIds = [...new Set(requestedTrialIds.filter((id) => isUuid(id)))];
   let savedTrialIds: string[] = [];
   let trials: Array<Record<string, unknown>> = [];
@@ -366,6 +385,24 @@ export async function executeGenerate(input: {
     const allowed = new Set(trialsResult.rows.map((row) => String(row.id)));
     savedTrialIds = uuidTrialIds.filter((id) => allowed.has(id));
     trials = trialsResult.rows.filter((row) => savedTrialIds.includes(String(row.id)));
+  }
+  // Include verified graph records not present in the SQL UUID catalog.
+  const dbTrialIds = new Set(trials.map((trial) => String(trial.id)));
+  for (const [id, trial] of graphTrialsById) {
+    if (dbTrialIds.has(id)) continue;
+    trials.push({
+      id, title: trial.title ?? "",
+      description: trial.description_9_11 ?? trial.description_5_8 ?? "",
+      format: trial.format ?? null,
+      duration_minutes: trial.duration_minutes ?? null,
+      municipality: trial.municipality ?? null,
+      cost: trial.cost ?? null,
+      source_url: trial.source_url ?? null,
+      organization: trial.organization ?? null,
+      skills_checked: trial.skills_checked ?? [],
+      fit_level: trial.fit_level ?? null,
+      source: "graph",
+    });
   }
 
   const generation = payload.generation;
