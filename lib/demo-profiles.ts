@@ -1,4 +1,7 @@
-/** Portrait filenames follow public/assets/children/portrait_mapping.csv.\n * ID and grade are aligned to backend/data/mock_students_data.json.\n * The source of truth for questionnaires and responses remains the backend. */\nexport const demoProfiles = [
+/** Portrait filenames follow public/assets/children/portrait_mapping.csv.
+ * ID and grade are aligned to backend/data/mock_students_data.json.
+ * The source of truth for questionnaires and responses remains the backend. */
+export const demoProfiles = [
   {
     "id": 1,
     "name": "Аня",
@@ -164,4 +167,4 @@
     ],
     "avatar": "/assets/children/15_Roman.png"
   }
-] as const;\n
+] as const;
