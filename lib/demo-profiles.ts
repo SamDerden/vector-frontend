@@ -9,7 +9,7 @@ export const demoProfiles = [
       "Животные",
       "Рисование"
     ],
-    "avatar": "/assets/01_Anya.png"
+    "avatar": "/assets/children/01_Anya.png"
   },
   {
     "id": 2,
@@ -21,7 +21,7 @@ export const demoProfiles = [
       "Конструкторы",
       "Природа"
     ],
-    "avatar": "/assets/02_Misha.png"
+    "avatar": "/assets/children/02_Misha.png"
   },
   {
     "id": 3,
@@ -33,7 +33,7 @@ export const demoProfiles = [
       "Чтение",
       "Музыка"
     ],
-    "avatar": "/assets/03_Sonya.png"
+    "avatar": "/assets/children/03_Sonya.png"
   },
   {
     "id": 4,
@@ -45,7 +45,7 @@ export const demoProfiles = [
       "Спорт",
       "Техника"
     ],
-    "avatar": "/assets/04_Egor.png"
+    "avatar": "/assets/children/04_Egor.png"
   },
   {
     "id": 5,
@@ -57,7 +57,7 @@ export const demoProfiles = [
       "Видео",
       "Помощь другим"
     ],
-    "avatar": "/assets/05_Vika.png"
+    "avatar": "/assets/children/05_Vika.png"
   },
   {
     "id": 6,
@@ -69,7 +69,7 @@ export const demoProfiles = [
       "Программирование",
       "Игры"
     ],
-    "avatar": "/assets/06_Danya.png"
+    "avatar": "/assets/children/06_Danya.png"
   },
   {
     "id": 7,
@@ -81,7 +81,7 @@ export const demoProfiles = [
       "Дизайн",
       "Фотография"
     ],
-    "avatar": "/assets/07_Polina.png"
+    "avatar": "/assets/children/07_Polina.png"
   },
   {
     "id": 8,
@@ -93,7 +93,7 @@ export const demoProfiles = [
       "Анализ данных",
       "Стратегии"
     ],
-    "avatar": "/assets/08_Artem.png"
+    "avatar": "/assets/children/08_Artem.png"
   },
   {
     "id": 9,
@@ -105,7 +105,7 @@ export const demoProfiles = [
       "Вокал",
       "Театр"
     ],
-    "avatar": "/assets/09_Nastya.png"
+    "avatar": "/assets/children/09_Nastya.png"
   },
   {
     "id": 10,
@@ -117,7 +117,7 @@ export const demoProfiles = [
       "Наука",
       "Изобретения"
     ],
-    "avatar": "/assets/10_Ilya.png"
+    "avatar": "/assets/children/10_Ilya.png"
   },
   {
     "id": 11,
@@ -129,7 +129,7 @@ export const demoProfiles = [
       "IT и технологии",
       "Стартапы"
     ],
-    "avatar": "/assets/11_Sasha.png"
+    "avatar": "/assets/children/11_Sasha.png"
   },
   {
     "id": 12,
@@ -141,7 +141,7 @@ export const demoProfiles = [
       "Маркетинг",
       "Проекты"
     ],
-    "avatar": "/assets/12_Kira.png"
+    "avatar": "/assets/children/12_Kira.png"
   },
   {
     "id": 13,
@@ -153,7 +153,7 @@ export const demoProfiles = [
       "Инженерия",
       "Авто"
     ],
-    "avatar": "/assets/13_Maksim.png"
+    "avatar": "/assets/children/13_Maksim.png"
   },
   {
     "id": 14,
@@ -165,7 +165,7 @@ export const demoProfiles = [
       "Графика",
       "Кино"
     ],
-    "avatar": "/assets/14_Liza.png"
+    "avatar": "/assets/children/14_Liza.png"
   },
   {
     "id": 15,
@@ -177,6 +177,6 @@ export const demoProfiles = [
       "Бизнес",
       "Путешествия"
     ],
-    "avatar": "/assets/15_Roman.png"
+    "avatar": "/assets/children/15_Roman.png"
   }
 ] as const;
