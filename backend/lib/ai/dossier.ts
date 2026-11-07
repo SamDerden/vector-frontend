@@ -2,6 +2,7 @@
 import patterns from "@/config/validation_patterns.json";
 import agePolicy from "@/config/age_policy.json";
 import questionMaster from "@/data/bilet_questions_master.json";
+import clarificationMaster from "@/data/agent_clarification.json";
 
 // ---------- Типы (из задания) ----------
 export type DossierAnswer = {
@@ -124,6 +125,9 @@ function makeQuestionKey(questionnaire: string, questionId: string): string {
 }
 
 function getQuestionText(questionnaire: string, questionId: string): string {
+  if (questionnaire === "agent_clarification") {
+    return clarificationMaster.agent_clarification_questions.find((q) => q.question_id === questionId)?.text ?? questionId;
+  }
   const configured = questionMaster.questionnaires.find(
     (item) => item.questionnaire_name === questionnaire
   );
@@ -211,6 +215,13 @@ export function buildDossier(
       .filter((s): s is string => s !== null);
 
     if (selectedStrings.length === 0) continue;
+
+    if (questionnaire === "agent_clarification") {
+      const question = clarificationMaster.agent_clarification_questions.find((q) => q.question_id === questionId);
+      if (question) {
+        selectedStrings = selectedStrings.map((value) => question.options.find((option) => option.value === value)?.label ?? value);
+      }
+    }
 
     // Получаем текст вопроса
     const qText =
