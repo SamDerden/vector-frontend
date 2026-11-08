@@ -426,3 +426,23 @@
  .demo-quiz-screen .clarification-hero-right .clarification-telescope{flex-basis:33%;width:33%;max-height:140px}
  .demo-quiz-screen .clarification-hero-right .clarification-speech{font-size:11px;margin:0 0 14px;padding:11px}
 }
+
+
+/* Demo portraits fill their entire image panel, not a smaller inset on a colored plaque. */
+.demo-grid .demo-card{align-items:stretch;padding:0;gap:0;min-height:164px;isolation:isolate}
+.demo-grid .demo-card>img{display:block;align-self:stretch;flex:0 0 46%;width:46%;height:auto;min-height:164px;max-height:none;object-fit:cover;object-position:center top;border-radius:0;background:transparent}
+.demo-grid .demo-card>div{flex:1;justify-content:center;gap:8px;padding:14px 12px;min-width:0}
+.demo-grid .demo-card strong{font-size:clamp(13px,1.15vw,17px);line-height:1.25}
+.demo-grid .demo-card small{width:100%}
+.demo-grid .demo-card small span{overflow-wrap:anywhere}
+.demo-grid .demo-card .check-mark{z-index:2;right:9px;top:9px}
+@media(max-width:700px){
+ .demo-grid .demo-card{min-height:148px}
+ .demo-grid .demo-card>img{min-height:148px;flex-basis:44%;width:44%}
+ .demo-grid .demo-card>div{padding:10px 8px;gap:7px}
+ .demo-grid .demo-card strong{font-size:13px}
+}
+@media(max-width:390px){
+ .demo-grid .demo-card{min-height:152px}
+ .demo-grid .demo-card>img{min-height:152px}
+}
