@@ -412,3 +412,17 @@
  .vector-journey-switch{width:100%;display:grid;grid-template-columns:1fr 1fr}
  .vector-journey-switch button{font-size:12px;padding:12px 8px}
 }
+
+
+/* Six-question clarification: readable question and speech before waving Leshii. */
+.demo-quiz-screen .demo-quiz-heading h2{font-size:clamp(23px,2.2vw,31px);line-height:1.24;letter-spacing:-.02em;margin:8px 0}
+.demo-quiz-screen .clarification-hero-right{flex-direction:row;justify-content:flex-end;gap:8px}
+.demo-quiz-screen .clarification-hero-right .clarification-speech{order:0;margin:0 0 24px 0;transform:rotate(-1deg);flex:1}
+.demo-quiz-screen .clarification-hero-right .clarification-telescope{order:1;flex:0 0 43%;width:43%;max-height:220px}
+.demo-quiz-screen .clarification-hero-right .clarification-speech::before{left:auto;right:-12px;bottom:20px;transform:scaleX(-1)}
+@media(max-width:700px){
+ .demo-quiz-screen .demo-quiz-heading h2{font-size:clamp(20px,5vw,25px);line-height:1.28}
+ .demo-quiz-screen .clarification-hero-right{gap:6px}
+ .demo-quiz-screen .clarification-hero-right .clarification-telescope{flex-basis:33%;width:33%;max-height:140px}
+ .demo-quiz-screen .clarification-hero-right .clarification-speech{font-size:11px;margin:0 0 14px;padding:11px}
+}
