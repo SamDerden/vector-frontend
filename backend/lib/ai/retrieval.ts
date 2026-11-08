@@ -299,6 +299,17 @@ export async function retrieve(
   const index = JSON.parse(indexRaw) as CatalogIndex;
   const catalog = JSON.parse(catalogRaw) as NormalizedCatalogSnapshot;
   const indexIsCurrent = index.catalog_version === catalog.version;
+  // The query and index MUST use the same embedding model.
+  const configuredModel = readEmbeddingsGateway(process.env)?.model;
+  const indexModel = (index as CatalogIndex & { embedding_model?: string }).embedding_model;
+  const vectorsUsable = indexIsCurrent && (
+    process.env.USE_MOCK_EMBEDDINGS === "true" ||
+    Boolean(configuredModel && indexModel && configuredModel === indexModel)
+  ) && index.entries.length > 0 && index.entries.every(entry =>
+    Array.isArray(entry.vector) && entry.vector.length > 0 &&
+    entry.vector.length === index.entries[0].vector.length &&
+    entry.vector.every(value => Number.isFinite(value))
+  );
   const entries = indexIsCurrent
     ? index.entries
     : catalog.chunks.map((chunk, index) => ({
@@ -326,11 +337,12 @@ export async function retrieve(
   const warnings = new Set<string>();
   const uncoveredAnswerRefs = new Set<string>();
   const isMock = process.env.USE_MOCK_EMBEDDINGS === "true";
-  let semanticAvailable = indexIsCurrent && isMock;
+  let semanticAvailable = vectorsUsable && isMock;
   let queryVectors: number[][] = [];
   const allQueryTexts = queries.map((query) => query.text);
   if (!indexIsCurrent) warnings.add("catalog_index_stale_lexical_fallback");
-  if (indexIsCurrent && isMock) {
+  else if (!vectorsUsable) warnings.add("catalog_index_model_unverified_lexical_fallback");
+  if (vectorsUsable && isMock) {
     try {
       queryVectors = await getEmbeddings(allQueryTexts, entries, 1);
     } catch (error) {
@@ -338,7 +350,7 @@ export async function retrieve(
       warnings.add("embedding_unavailable_lexical_fallback");
       console.warn("[Retrieval] Тестовые эмбеддинги недоступны; используется локальный поиск.", error);
     }
-  } else if (indexIsCurrent) {
+  } else if (vectorsUsable) {
     const remaining = options.deadlineAt === undefined
       ? ragConfig.embedding_timeout_ms
       : options.deadlineAt - Date.now();
@@ -456,7 +468,7 @@ export async function retrieve(
     industryScores: Object.fromEntries(industryRrf),
     coverageGap: uncoveredAnswerRefs.size > 0,
     uncoveredAnswerRefs: [...uncoveredAnswerRefs],
-    mode: isMock && indexIsCurrent ? "mock" : semanticAvailable ? "semantic" : "lexical",
+    mode: isMock && vectorsUsable ? "mock" : semanticAvailable ? "semantic" : "lexical",
     warnings: [...warnings],
   };
 }
