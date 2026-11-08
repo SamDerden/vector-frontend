@@ -16,7 +16,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
     "db:seed:mocks": "node scripts/seed-mock-students.mjs",
-    "db:prepare": "npm run db:migrate && npm run db:seed",
+    "db:prepare": "npm run db:migrate && npm run db:seed && node scripts/probe-embedding-models.mjs",
     "db:sync": "npm run db:migrate && node scripts/sync-hybrid-catalog.mjs --apply"
   },
   "dependencies": {
