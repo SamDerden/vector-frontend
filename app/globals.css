@@ -446,3 +446,26 @@
  .demo-grid .demo-card{min-height:152px}
  .demo-grid .demo-card>img{min-height:152px}
 }
+
+
+/* Desktop-wide layout: one consistent content canvas across landing, demo and diagnostics.
+   Mobile and tablet layouts remain governed by their existing breakpoints. */
+@media(min-width:1101px){
+ :root{--vector-page-max:1600px;--vector-page-gutter:clamp(24px,2.5vw,44px)}
+ .nav-inner,main,.demo-workspace{width:100%;max-width:var(--vector-page-max);margin-left:auto;margin-right:auto}
+ .nav-inner{padding-left:var(--vector-page-gutter);padding-right:var(--vector-page-gutter)}
+ .demo-workspace{padding-left:var(--vector-page-gutter);padding-right:var(--vector-page-gutter)}
+ main>.hero{padding-left:var(--vector-page-gutter);padding-right:var(--vector-page-gutter)}
+ main>.how{margin-left:var(--vector-page-gutter);margin-right:var(--vector-page-gutter)}
+ main>.ages,main>.partners,main>.opportunities{margin-left:var(--vector-page-gutter);margin-right:var(--vector-page-gutter)}
+ .hero-copy{width:min(56%,760px)}
+ .hero h1{font-size:clamp(42px,3.8vw,65px)}
+ .demo-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+ .demo-card>div{min-width:0}
+ .demo-card small span{max-width:100%}
+ .demo-quiz-screen .demo-quiz-heading{max-width:none}
+ .demo-quiz-screen .demo-quiz-heading h2{max-width:960px}
+}
+@media(min-width:1601px){
+ .nav-inner,main,.demo-workspace{max-width:1600px}
+}
