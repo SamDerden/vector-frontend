@@ -1,58 +1,24 @@
-
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
+import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { loadLocalEnv } from "./load-env.mjs";
-
-loadLocalEnv();
-
-const projectRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  ".."
-);
-
-function runImport(args, description) {
-  console.log(`\n=== ${description} ===`);
-
-  const result = spawnSync(
-    process.execPath,
-    ["scripts/import-catalog.mjs", ...args],
-    {
-      cwd: projectRoot,
-      stdio: "inherit",
-      env: process.env
-    }
-  );
-
-  if (result.error) {
-    throw result.error;
-  }
-
-  if (result.status !== 0) {
-    throw new Error(
-      `${description}: завершилось с ошибкой (код ${result.status})`
-    );
+// The approved SOFI catalog is the hybrid_v2 JSON graph. The legacy Excel v1
+// importer is intentionally NOT run on application startup: it upserts a
+// different dataset (40 professions / 15 trials) into the same database.
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const graph = JSON.parse(await fs.readFile(path.join(root, "data/navigator_full_graph.json"), "utf8"));
+const expected = graph.meta?.counts ?? {};
+if (graph.meta?.schema !== "hybrid_v2") throw new Error("Expected approved hybrid_v2 catalog");
+for (const field of ["industries", "professions", "skills", "organizations", "education_programs", "trials"]) {
+  if (!Array.isArray(graph[field]) || graph[field].length !== expected[field]) {
+    throw new Error(`Catalog mismatch for ${field}: actual=${graph[field]?.length}, declared=${expected[field]}`);
   }
 }
-
-try {
-  console.log("=== PROFESSIONAL NAVIGATOR SEED ===");
-
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL is required. Configure .env.local."
-    );
-  }
-
-  // Сначала проверяем данные, ничего не записывая в БД
-  runImport([], "Проверка исходных данных");
-
-  // Импортируем каталог в существующую БД
-  runImport(["--apply"], "Загрузка тестовых данных");
-
-  console.log("\nSeed completed successfully.");
-} catch (error) {
-  console.error("\nSeed failed:", error.message);
-  process.exitCode = 1;
-}
+console.log("[Catalog] Approved hybrid_v2 JSON verified:", JSON.stringify({
+  version: graph.meta.version,
+  professions: graph.professions.length,
+  trials: graph.trials.length,
+  industries: graph.industries.length,
+}));
+console.log("[Catalog] Legacy Excel v1 DB seeding disabled. SOFI reads the approved normalized JSON catalog.");
+console.log("[Catalog] PostgreSQL legacy tables require a separate reconciled migration; no existing rows were modified.");
