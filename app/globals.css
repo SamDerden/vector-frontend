@@ -502,3 +502,20 @@
  .demo-grid .demo-card strong{font-size:13px}
  .demo-grid .demo-card small span{font-size:10px}
 }
+
+
+/* Restore Vector's visual language without reintroducing blurry full-bleed banners. */
+.demo-screen .demo-banner-with-text{position:relative;isolation:isolate;background:linear-gradient(125deg,#e7f4ff 0%,#e8e5ff 57%,#d9faf2 100%)!important}
+.demo-screen .demo-banner-with-text::before{content:"";position:absolute;z-index:0;pointer-events:none;inset:auto -6% -32% -6%;height:68%;opacity:.32;background:radial-gradient(ellipse at 12% 75%,#71dbfa 0%,transparent 48%),radial-gradient(ellipse at 85% 85%,#a58bff 0%,transparent 46%);filter:blur(24px)}
+.demo-screen .demo-banner-with-text::after{content:"";position:absolute;z-index:0;pointer-events:none;left:-7%;right:-7%;bottom:7%;height:56px;border-radius:50%;border-top:3px solid rgba(44,214,210,.38);transform:rotate(-6deg);box-shadow:0 -10px 22px rgba(57,180,234,.10)}
+.demo-screen .demo-banner-with-text>*{position:relative;z-index:1}
+.demo-screen .demo-guide{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:12px!important}
+.demo-screen .demo-guide .demo-speech{order:0!important;flex:1;min-width:0;max-width:460px;margin:0!important;text-align:center}
+.demo-screen .demo-guide .demo-mascot-leshii{order:1!important;flex:0 0 auto;width:clamp(105px,14vw,190px)!important;max-width:30%!important;height:auto!important;max-height:190px!important;object-fit:contain!important;object-position:bottom!important}
+.demo-screen .demo-guide .demo-speech::before{left:auto!important;right:-12px!important;transform:scaleX(-1)}
+@media(max-width:700px){
+ .demo-screen .demo-banner-with-text::after{height:35px;bottom:5%;opacity:.7}
+ .demo-screen .demo-guide{gap:6px!important;padding:5px 8px 0!important;min-height:110px}
+ .demo-screen .demo-guide .demo-speech{font-size:11px!important;line-height:1.4;padding:12px 10px!important;margin:0!important;max-width:none}
+ .demo-screen .demo-guide .demo-mascot-leshii{width:29%!important;flex:0 0 29%!important;max-width:29%!important;max-height:145px!important}
+}
