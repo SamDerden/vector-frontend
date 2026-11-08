@@ -519,3 +519,17 @@
  .demo-screen .demo-guide .demo-speech{font-size:11px!important;line-height:1.4;padding:12px 10px!important;margin:0!important;max-width:none}
  .demo-screen .demo-guide .demo-mascot-leshii{width:29%!important;flex:0 0 29%!important;max-width:29%!important;max-height:145px!important}
 }
+
+
+/* Results header: equal visual slots for both approved mascot PNGs. */
+.vector-results-hero{grid-template-columns:minmax(0,22%) minmax(0,1fr) minmax(0,22%);align-items:end}
+.vector-results-hero>img{display:block;width:100%;height:clamp(150px,18vw,235px);max-height:none;object-fit:contain;object-position:center bottom;align-self:end}
+.vector-results-hero>img:first-child{transform:scale(.91);transform-origin:center bottom}
+.vector-results-hero>img:last-child{transform:scale(1.08);transform-origin:center bottom}
+.vector-results-hero .vector-results-intro{align-self:center;min-width:0}
+@media(max-width:700px){
+ .vector-results-hero{grid-template-columns:minmax(0,22%) minmax(0,1fr) minmax(0,22%);gap:6px;min-height:180px;padding:12px 10px 0}
+ .vector-results-hero>img{width:100%;height:145px;max-height:none;object-fit:contain;object-position:center bottom}
+ .vector-results-hero>img:first-child{transform:scale(.91)}
+ .vector-results-hero>img:last-child{transform:scale(1.08)}
+}
