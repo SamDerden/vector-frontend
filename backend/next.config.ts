@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: projectRoot,
   outputFileTracingIncludes: {
     "/*": ["./data/**/*", "./prompts/**/*"],
+    "/api/**/*": ["./data/**/*", "./prompts/**/*"],
   },
 };
 
