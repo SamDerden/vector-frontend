@@ -53,9 +53,19 @@ try {
   }
   for(const item of graph.professions) {
     const industryId=required(ids.industries,item.industry_id,"industry");
-    // Preserve UUIDs of existing professions by matching approved external_id.
-    // If an old row uses the same title with a different ID, stop rather than silently reassign it.
-    ids.professions.set(item.profession_id,await upsert(`INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
+    // Reconcile legacy Excel rows by exact title, preserving their UUID and references.
+    // Never steal an external_id belonging to a different approved profession.
+    const titleMatch = await q("SELECT id, external_id FROM professions WHERE title=$1 FOR UPDATE",[item.name]);
+    const idMatch = await q("SELECT id, title FROM professions WHERE external_id=$1 FOR UPDATE",[item.profession_id]);
+    if (titleMatch.rows.length && idMatch.rows.length && titleMatch.rows[0].id !== idMatch.rows[0].id)
+      throw new Error(`Ambiguous profession identity for ${item.profession_id}: title and external ID point to different rows`);
+    if (titleMatch.rows.length && titleMatch.rows[0].external_id !== item.profession_id) {
+      const oldExternal = titleMatch.rows[0].external_id;
+      // Keep a stable UUID, and attach the approved catalog identifier.
+      await q("UPDATE professions SET external_id=$1 WHERE id=$2",[item.profession_id,titleMatch.rows[0].id]);
+      console.log("[Catalog sync] Reconciled existing profession by title:",item.profession_id,"previous external ID:",oldExternal);
+    }
+    ids.professions.set(item.profession_id,await upsert(``INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
       VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8) ON CONFLICT(external_id) DO UPDATE SET title=EXCLUDED.title,description=EXCLUDED.description,
       industry_id=EXCLUDED.industry_id,riasec=EXCLUDED.riasec,demand_level_region=EXCLUDED.demand_level_region,
       salary_median_region=EXCLUDED.salary_median_region,vacancies_count=EXCLUDED.vacancies_count RETURNING id`,
