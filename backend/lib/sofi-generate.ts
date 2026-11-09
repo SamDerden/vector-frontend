@@ -316,6 +316,24 @@ export async function executeGenerate(input: {
   } catch (error) {
     console.warn("[Sofi mapping] Could not load catalog profession titles", error instanceof Error ? error.message : "unknown");
   }
+  // Resolve internal skill identifiers only through the approved source catalog.
+  const skillNames = new Map<string, string>();
+  try {
+    const rawSkills = await fs.readFile(path.resolve(process.cwd(), "data/navigator_full_graph.json"), "utf8");
+    const sourceCatalog = JSON.parse(rawSkills) as { skills?: Array<{ skill_id: string; name: string }> };
+    for (const skill of sourceCatalog.skills ?? []) {
+      if (skill.skill_id && skill.name) skillNames.set(skill.skill_id, skill.name);
+    }
+  } catch (error) {
+    console.warn("[Sofi mapping] Skill reference unavailable", error instanceof Error ? error.message : "unknown");
+  }
+  const publicSkill = (value: unknown): string | null => {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    if (/^skill[_-]\\d+$/i.test(trimmed)) return skillNames.get(trimmed) ?? null;
+    return trimmed;
+  };
   const hypotheses = junior
     ? []
     : adapted.aiPayload.hypotheses.flatMap((item) => {
@@ -430,7 +448,7 @@ export async function executeGenerate(input: {
       cost: trial.cost ?? null,
       source_url: trial.source_url ?? null,
       organization: trial.organization ?? null,
-      skills_checked: trial.skills_checked ?? [],
+      skills_checked: (Array.isArray(trial.skills_checked) ? trial.skills_checked : []).map(publicSkill).filter((name): name is string => Boolean(name)),
       fit_level: trial.fit_level ?? null,
       source: "graph",
     });
@@ -446,7 +464,7 @@ export async function executeGenerate(input: {
     });
     const profession = details?.catalogProfessionId ? graphProfessionsById.get(details.catalogProfessionId) : undefined;
     const description = tier === "5-8" ? profession?.description_5_8 : profession?.description_9_11;
-    const skills = Array.isArray(profession?.key_skills) ? profession.key_skills.filter((skill): skill is string => typeof skill === "string") : [];
+    const skills = Array.isArray(profession?.key_skills) ? profession.key_skills.map(publicSkill).filter((name): name is string => Boolean(name)) : [];
     const programs = Array.isArray(profession?.programs) ? profession.programs.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : [];
     return {
       ...hypothesis,
