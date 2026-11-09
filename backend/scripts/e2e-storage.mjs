@@ -159,6 +159,10 @@ check(
 );
 
 if (generateOk) {
+  const hypotheses=Array.isArray(generateA.json?.hypotheses)?generateA.json.hypotheses:[];
+  const generation=generateA.json?.generation??generateA.json?.aiPayload?.generation??null;
+  console.log("[RAG E2E] Recommendation payload:",JSON.stringify({hypotheses:hypotheses.length,industryNames:hypotheses.map(h=>h.industryName).filter(Boolean).length,generationMode:generation?.mode??null,status:generateA.json?.status??null}));
+  check("recommendation contains professions for grade 9",hypotheses.length>0);
   const recId = generateA.json?.recommendationId;
   const stored = await api("GET", "/api/recommendations", sessionA);
   check("reload recommendation from PostgreSQL", stored.status === 200);
