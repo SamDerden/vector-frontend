@@ -439,7 +439,7 @@ export async function executeGenerate(input: {
   // Enrich each visible hypothesis with its own verified catalog trials.
   const trialsById = new Map(trials.map((trial) => [String(trial.id), trial]));
   const publicHypotheses = hypotheses.map((hypothesis) => {
-    const details = payload.hypotheses.find((item) => item.professionId === hypothesis.professionId);
+    const details = payload.hypotheses.find((item) => (item.professionId ?? item.catalogProfessionId) === hypothesis.professionId);
     const linkedTrials = (details?.trialIds ?? []).flatMap((id) => {
       const trial = trialsById.get(id);
       return trial ? [trial] : [];
