@@ -533,3 +533,9 @@
  .vector-results-hero>img:first-child{transform:scale(.91)}
  .vector-results-hero>img:last-child{transform:scale(1.08)}
 }
+
+/* Keep profession actions below the content instead of covering it. */
+.vector-direction{flex-wrap:wrap;align-items:flex-start}
+.vector-direction>.pill{position:static!important;flex:0 0 100%;width:100%;max-width:100%;min-height:44px;margin:4px 0 0;white-space:normal;text-align:center;z-index:1}
+.vector-direction-body{padding-right:42px}
+@media(max-width:600px){.vector-direction{align-items:stretch}.vector-direction-art{min-height:145px}.vector-direction-body{padding-right:38px;overflow-wrap:anywhere}.vector-direction>.pill{flex-basis:100%;padding:12px 14px;font-size:14px}}
