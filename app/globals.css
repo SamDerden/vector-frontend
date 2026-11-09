@@ -592,3 +592,22 @@
 @media(max-width:600px){.vector-profile-facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.vector-profile-fact{padding:12px 8px;font-size:11px}.vector-profile-evidence{grid-template-columns:1fr}.vector-profile-evidence-card{padding:16px}.vector-profile-next .pill{width:100%}}
 
 .vector-alternative-active{border:2px solid #4c74da;background:linear-gradient(135deg,#e5f1ff,#edf9f5);box-shadow:0 5px 18px #3b6cb522;cursor:default}.vector-alternative-active span{color:#226d65;font-weight:800}.vector-alternative:focus-visible{outline:3px solid #4363ce;outline-offset:3px}
+
+/* Compact educational program catalog */
+.vector-programs-heading{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:34px 0 18px}
+.vector-programs-heading h2{font-size:clamp(22px,3vw,31px);line-height:1.2;margin:5px 0 9px;color:#18244d}
+.vector-programs-heading p{color:#526385;line-height:1.5;margin:0}
+.vector-programs-eyebrow{color:#427a96;font-size:13px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.vector-programs-count{flex-shrink:0;border-radius:999px;background:#ffffffb9;padding:9px 14px;color:#435a84;font-size:13px;font-weight:700}
+.vector-programs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:24px}
+.vector-program-card{display:flex;flex-direction:column;gap:12px;min-width:0;padding:20px;border:1px solid #e4eafb;border-radius:22px;background:#ffffffeb;box-shadow:0 8px 24px #405d9910}
+.vector-program-card-top{display:flex;align-items:center;gap:10px;color:#607196;font-size:12px;font-weight:700}
+.vector-program-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:linear-gradient(145deg,#e9e6ff,#dff8f3);color:#6250cb;font-size:20px}
+.vector-program-card h3{font-size:clamp(17px,2.2vw,21px);line-height:1.3;margin:0;color:#16254f;overflow-wrap:anywhere}
+.vector-program-org{font-size:14px;line-height:1.45;color:#61708f;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.vector-program-card-footer{display:flex;align-items:center;min-height:44px;margin-top:auto;padding-top:12px;border-top:1px solid #edf0fa}
+.vector-program-link{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;border-radius:999px;background:linear-gradient(100deg,#5334dc,#2169de,#32b9a8);color:#fff!important;font-size:13px;font-weight:800;text-decoration:none}
+.vector-program-link:hover{filter:brightness(1.08)}.vector-program-link:focus-visible{outline:3px solid #4164ce;outline-offset:3px}
+.vector-program-soon{display:inline-flex;align-items:center;padding:9px 15px;border-radius:999px;background:#edf1f8;color:#75829d;font-size:13px;font-weight:700}
+.vector-program-empty{grid-column:1/-1;padding:18px;color:#61708f}
+@media(max-width:650px){.vector-programs-heading{align-items:start;flex-direction:column;gap:10px}.vector-programs-grid{grid-template-columns:1fr;gap:12px}.vector-program-card{padding:17px;gap:10px}.vector-program-org{font-size:13px}.vector-program-card-footer{padding-top:10px}}
