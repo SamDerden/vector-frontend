@@ -634,3 +634,18 @@
 .vector-analysis-leshii{height:63%!important;max-width:31%!important;right:8%;bottom:10%!important}
 .vector-analysis-trail-sparkle{font-size:clamp(11px,1.8vw,17px);opacity:.7}
 @media(max-width:600px){.vector-analysis-walk{height:190px}.vector-analysis-snegurochka{height:80%!important;max-width:42%!important;left:0}.vector-analysis-leshii{height:59%!important;max-width:30%!important;right:3%}.vector-analysis-trail{left:12%;right:12%;bottom:5%}.vector-analysis-trail-line{left:13%;right:13%;bottom:23%;height:35%;border-bottom-width:12px}}
+
+/* Profile: narrative insights rather than raw questionnaire cards. */
+.vector-profile-summary{display:grid;grid-template-columns:125px minmax(0,1fr);align-items:center;gap:20px;padding:20px 25px;border-radius:25px;background:linear-gradient(115deg,#eafaf4,#f0f3ff);border:1px solid #dce8f5}
+.vector-profile-summary img{width:100%;height:145px;object-fit:contain}
+.vector-profile-summary h2{margin:8px 0;font-size:clamp(19px,2.5vw,27px)}
+.vector-profile-summary p{margin:0;line-height:1.6;color:#52607e}
+.vector-profile-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.vector-profile-insight{padding:24px;border:1px solid #dce5f6;border-radius:23px;background:linear-gradient(155deg,#fff,#f5f8ff)}
+.vector-profile-insight-icon{font-size:28px;margin-bottom:10px}
+.vector-profile-insight h3{margin:0 0 10px;font-size:clamp(18px,2vw,22px);color:#19244c}
+.vector-profile-insight p{margin:0 0 12px;color:#52607e;line-height:1.5}
+.vector-profile-insight ul{margin:0;padding-left:20px;color:#24355e;line-height:1.6}
+.vector-profile-insight li+li{margin-top:7px}
+.vector-profile-directions{padding:20px 24px;border-radius:22px;background:#f4f8ff}
+@media(max-width:650px){.vector-profile-insights{grid-template-columns:1fr;gap:12px}.vector-profile-insight{padding:20px}.vector-profile-summary{grid-template-columns:82px minmax(0,1fr);gap:12px;padding:16px}.vector-profile-summary img{height:105px}.vector-profile-summary h2{font-size:18px}.vector-profile-summary p{font-size:14px}}
