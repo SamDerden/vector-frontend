@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/ensure-embedding-index.mjs && next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/schemas.test.ts tests/mock-students.test.ts tests/sofi-adapter.test.ts tests/generate-route.test.ts tests/recommendation-read.test.ts tests/hybrid-profession-plan.test.ts tests/track-select.test.ts tests/gateway-env.test.ts tests/session-security.test.ts tests/mock-student-import.test.ts",
