@@ -304,12 +304,32 @@ export async function executeGenerate(input: {
   const adapted = adaptSofiResult(sofiResult, professions);
   console.log("[Sofi mapping] result:",JSON.stringify({rawHypotheses:sofiResult.hypotheses?.length??0,mapped:adapted.hypotheses.length,unmapped:adapted.unmapped.length,unmappedIds:adapted.unmapped.slice(0,5).map(item=>item.catalogProfessionId),generationMode:sofiResult.generation?.mode??null}));
   const junior = tier === "1-4";
+  // Keep catalog-backed recommendations visible even when the legacy SQL
+  // professions table has no graph_profession_id mapping. Do not invent UUIDs.
+  const catalogProfessionNames = new Map<string, string>();
+  try {
+    const raw = await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8");
+    const graph = JSON.parse(raw) as { professions?: Array<{ profession_id: string; name: string }> };
+    for (const profession of graph.professions ?? []) {
+      catalogProfessionNames.set(profession.profession_id, profession.name);
+    }
+  } catch (error) {
+    console.warn("[Sofi mapping] Could not load catalog profession titles", error instanceof Error ? error.message : "unknown");
+  }
   const hypotheses = junior
     ? []
-    : adapted.hypotheses.map((item) => ({
-        ...item,
-        title: titles.get(item.professionId) || item.title,
-      }));
+    : adapted.aiPayload.hypotheses.flatMap((item) => {
+        const catalogTitle = catalogProfessionNames.get(item.catalogProfessionId);
+        if (!catalogTitle) return [];
+        return [{
+          professionId: item.professionId ?? item.catalogProfessionId,
+          title: item.professionId ? (titles.get(item.professionId) || catalogTitle) : catalogTitle,
+          reason: item.reason || "Профессия подобрана по ответам и проверенному каталогу.",
+          fitScore: item.fitScore,
+          scoreKind: "relative_ranking" as const,
+          mapping: item.mapping,
+        }];
+      });
   const payload = junior
     ? { ...adapted.aiPayload, hypotheses: [] }
     : adapted.aiPayload;
