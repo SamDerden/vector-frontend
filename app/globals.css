@@ -611,3 +611,5 @@
 .vector-program-soon{display:inline-flex;align-items:center;padding:9px 15px;border-radius:999px;background:#edf1f8;color:#75829d;font-size:13px;font-weight:700}
 .vector-program-empty{grid-column:1/-1;padding:18px;color:#61708f}
 @media(max-width:650px){.vector-programs-heading{align-items:start;flex-direction:column;gap:10px}.vector-programs-grid{grid-template-columns:1fr;gap:12px}.vector-program-card{padding:17px;gap:10px}.vector-program-org{font-size:13px}.vector-program-card-footer{padding-top:10px}}
+
+.vector-profession-next{display:flex;flex-direction:column;align-items:flex-start;gap:14px;background:linear-gradient(135deg,#e9ecff,#e5f8f5);border:1px solid #dbe8f6;border-radius:24px;padding:24px}.vector-profession-next-label{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#496b9c}.vector-profession-next h2{margin:0;font-size:clamp(22px,2.8vw,30px);line-height:1.25}.vector-profession-next p{margin:0;line-height:1.55;color:#526384}.vector-profession-next .pill{white-space:normal;text-align:center;margin-top:8px}@media(max-width:600px){.vector-profession-next{padding:18px}.vector-profession-next .pill{width:100%}}
