@@ -43,7 +43,7 @@ export default function Home(){
  const profileAnswers=mode==="demo"?(dossiers.find(s=>s.studentId===demoSelected)?.answers||[]).map(a=>({question:a.question,answers:Array.isArray(a.answer)?a.answer.map(String):[String(a.answer??"")]})):diagnostic.map(q=>({question:q.text,answers:dAnswers[q.id]||[]}));
  const clarificationFacts=clarifications.flatMap((q,i)=>{const chosen=(demoAnswers[i]||[]).map(index=>q.options[index]?.label).filter((v):v is string=>Boolean(v));return chosen.length?[{question:q.text,answers:chosen}]:[]});
  const groundedProfileFacts=[...clarificationFacts,...profileAnswers].filter(f=>f.answers.some(a=>a.trim().length>0));
- const profileThemes=[...new Set((result?.hypotheses||[]).map((h:any)=>String(h.industryName||"").trim()).filter(Boolean))].slice(0,5);
+ const profileThemes:string[]=[...new Set<string>((result?.hypotheses||[]).map((h:any)=>String(h.industryName||"").trim()).filter(Boolean))].slice(0,5);
  const demoProfile=demoProfiles.find(p=>p.id===demoSelected)||demoProfiles[0];
  const selectedDossier=dossiers.find(s=>s.studentId===demoSelected);const currentClarification=clarifications[demoQuestion];
  
