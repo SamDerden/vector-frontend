@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/sync-prompt-manifest.mjs && next build",
-    "start": "node scripts/ensure-embedding-index.mjs && node scripts/start-with-e2e.mjs",
+    "start": "node scripts/ensure-embedding-index.mjs && next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/schemas.test.ts tests/mock-students.test.ts tests/sofi-adapter.test.ts tests/generate-route.test.ts tests/recommendation-read.test.ts tests/hybrid-profession-plan.test.ts tests/track-select.test.ts tests/gateway-env.test.ts tests/session-security.test.ts tests/mock-student-import.test.ts",
@@ -17,7 +17,8 @@
     "db:seed": "node scripts/seed.mjs",
     "db:seed:mocks": "node scripts/seed-mock-students.mjs",
     "db:prepare": "npm run db:migrate && npm run db:seed && node scripts/probe-embedding-models.mjs",
-    "db:sync": "npm run db:migrate && node scripts/sync-hybrid-catalog.mjs --apply"
+    "db:sync": "npm run db:migrate && node scripts/sync-hybrid-catalog.mjs --apply",
+    "e2e:live": "node scripts/e2e-storage.mjs"
   },
   "dependencies": {
     "axios": "^1.21.0",
