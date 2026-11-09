@@ -302,6 +302,7 @@ export async function executeGenerate(input: {
   }
 
   const adapted = adaptSofiResult(sofiResult, professions);
+  console.log("[Sofi mapping] result:",JSON.stringify({rawHypotheses:sofiResult.hypotheses?.length??0,mapped:adapted.hypotheses.length,unmapped:adapted.unmapped.length,unmappedIds:adapted.unmapped.slice(0,5).map(item=>item.catalogProfessionId),generationMode:sofiResult.generation?.mode??null}));
   const junior = tier === "1-4";
   const hypotheses = junior
     ? []
