@@ -87,7 +87,7 @@ if (health.status !== 200) {
   process.exit(1);
 }
 
-const missingHeader = await api("POST", "/api/track/select", null, { trackType: "explore" });
+const missingHeader = await api("POST", "/api/track/select", null, { trackType: "explore", schoolGrade: 9 });
 check("401 without X-Session-ID", missingHeader.status === 401);
 
 const badUuid = await api("POST", "/api/track/select", "not-a-uuid", { trackType: "explore" });
@@ -102,7 +102,7 @@ check(
 const trackA = await api("POST", "/api/track/select", sessionA, { trackType: "explore" });
 check("create session A", trackA.status === 200 && trackA.json?.sessionId === sessionA);
 
-const trackUpdate = await api("POST", "/api/track/select", sessionA, { trackType: "interests" });
+const trackUpdate = await api("POST", "/api/track/select", sessionA, { trackType: "interests", schoolGrade: 9 });
 check("update track A", trackUpdate.status === 200 && trackUpdate.json?.trackType === "interests");
 
 const trackB = await api("POST", "/api/track/select", sessionB, { trackType: "known_direction" });
