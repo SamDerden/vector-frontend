@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/sync-prompt-manifest.mjs && next build",
     "start": "node scripts/ensure-embedding-index.mjs && node scripts/start-with-e2e.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
