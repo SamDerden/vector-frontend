@@ -460,6 +460,7 @@ export async function retrieve(
     evidence[id] = Array.from(refsSet);
   }
 
+  console.log("[RAG E2E] retrieval mode:", isMock && vectorsUsable ? "mock" : semanticAvailable ? "semantic" : "lexical", "professions:", sortedProfessions.length, "warnings:", [...warnings].join(","));
   return {
     industryIds: sortedIndustries,
     professionIds: sortedProfessions,
