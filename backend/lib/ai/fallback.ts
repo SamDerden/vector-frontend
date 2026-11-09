@@ -79,11 +79,10 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
 
   const rawHypotheses = retrieval.professionIds.slice(0, 5).flatMap((professionId) => {
     const candidate = ctx.candidatesMap[professionId];
-    const refs = retrieval.evidence[professionId] ?? [];
+    const refs = (retrieval.evidence[professionId] ?? []).filter(ref => ctx.dossierRefs.has(ref) && (ctx.answersMap[ref]?.selected?.length ?? 0) > 0);
     if (!candidate || refs.length === 0) return [];
 
-    const answer = firstEvidence(refs, ctx);
-    if (!answer || answer.selected.length === 0) return [];
+    if (refs.length === 0) return [];
     return [{
       profession_id: professionId,
       industry_id: candidate.industry_id,
