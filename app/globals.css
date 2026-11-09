@@ -675,3 +675,15 @@
 .vector-profession-explore .pill{display:inline-flex;align-items:center;justify-content:center;gap:7px;max-width:100%;padding:13px 20px;white-space:nowrap;font-size:15px}
 @media(max-width:760px){.vector-profession-story{grid-template-columns:1fr;gap:13px}.vector-profession-story-card{padding:21px 19px}.vector-profession-explore{grid-column:auto;grid-template-columns:minmax(0,1fr) 85px;gap:8px}.vector-profession-explore img{height:125px}.vector-profession-explore .pill{padding:12px 14px;font-size:13px}}
 @media(max-width:420px){.vector-profession-explore{grid-template-columns:1fr}.vector-profession-explore img{display:none}.vector-profession-explore .pill{font-size:13px}}
+
+/* Category-first opportunities navigation. */
+.vector-profession-explore{display:block;grid-column:1/-1}
+.vector-profession-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.vector-profession-category{display:grid;grid-template-columns:40px 1fr 20px;grid-template-rows:auto auto;align-items:center;text-align:left;gap:5px 12px;min-width:0;padding:19px 16px;border:1px solid #dce6f8;border-radius:19px;background:#fff;color:#1d2b55;cursor:pointer}
+.vector-profession-category:hover,.vector-profession-category:focus-visible{border-color:#57baa8;background:#f2faf7}
+.vector-profession-category-icon{grid-row:1/3;font-size:27px}.vector-profession-category strong{grid-column:2;font-size:17px;line-height:1.3}.vector-profession-category small{grid-column:2;color:#60708d;line-height:1.4}.vector-profession-category-arrow{grid-column:3;grid-row:1/3;justify-self:end;font-size:21px}
+.vector-profession-bottom-mascots,.vector-opportunity-footer-mascots{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:15px 0 -16px}
+.vector-profession-bottom-mascots img{width:clamp(95px,20%,170px);height:160px;object-fit:contain;object-position:bottom}
+.vector-profession-bottom-mascots img:last-child{height:118px}
+.vector-opportunity-footer-mascots{align-items:center;margin:28px 0 0}.vector-opportunity-footer-mascots img{width:clamp(75px,16%,140px);height:130px;object-fit:contain}.vector-opportunity-footer-mascots img:last-child{height:105px}
+@media(max-width:600px){.vector-profession-category-grid{gap:10px}.vector-profession-category{grid-template-columns:1fr 15px;grid-template-rows:auto auto auto;gap:5px;padding:14px 10px}.vector-profession-category-icon{grid-column:1;grid-row:1;font-size:23px}.vector-profession-category strong{grid-column:1;grid-row:2;font-size:13px}.vector-profession-category small{grid-column:1;grid-row:3;font-size:11px}.vector-profession-category-arrow{grid-column:2;grid-row:2;font-size:16px}.vector-profession-bottom-mascots img{height:112px}.vector-profession-bottom-mascots img:last-child{height:85px}.vector-opportunity-footer-mascots{gap:5px}.vector-opportunity-footer-mascots img{width:19%;height:90px}.vector-opportunity-footer-mascots img:last-child{height:70px}.vector-opportunity-footer-mascots .pill{font-size:11px;padding:10px 9px;white-space:normal}}
