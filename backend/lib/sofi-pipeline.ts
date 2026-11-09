@@ -326,7 +326,17 @@ export async function runSofiPipeline(
             why: industry.why,
           })),
           interest_tags: [],
-          hypotheses: processed.hypotheses,
+          // Explain each recommendation using the exact answers referenced by the model.
+          // Do not infer interests from the profession title or fabricate evidence.
+          hypotheses: processed.hypotheses.map((hypothesis) => {
+            const selected = [...new Set(hypothesis.evidence.flatMap((item) => item.selected)
+              .map((answer) => answer.trim())
+              .filter((answer) => answer.length > 2 && answer.length < 160))].slice(0, 3);
+            const evidenceReason = selected.length
+              ? `В твоих ответах: ${selected.map((answer) => `«${answer}»`).join(", ")}. Это одна из причин рассмотреть профессию «${hypothesis.name}» и проверить интерес на практике.`
+              : "";
+            return { ...hypothesis, why: evidenceReason || hypothesis.why };
+          }),
           next_step: nextStep,
           warnings: [...new Set([
             ...dossier.warnings,
