@@ -649,3 +649,10 @@
 .vector-profile-insight li+li{margin-top:7px}
 .vector-profile-directions{padding:20px 24px;border-radius:22px;background:#f4f8ff}
 @media(max-width:650px){.vector-profile-insights{grid-template-columns:1fr;gap:12px}.vector-profile-insight{padding:20px}.vector-profile-summary{grid-template-columns:82px minmax(0,1fr);gap:12px;padding:16px}.vector-profile-summary img{height:105px}.vector-profile-summary h2{font-size:18px}.vector-profile-summary p{font-size:14px}}
+
+/* Loading illustration sits nearer the footer, with less dead space below. */
+.vector-analysis-walk{margin-top:clamp(30px,6vh,70px);margin-bottom:-48px}
+/* Compact profile CTA: text and arrow stay on the same line. */
+.vector-profile-next .pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:auto;max-width:100%;padding:13px 23px;font-size:clamp(13px,1.55vw,16px);line-height:1.35;white-space:nowrap;text-align:center;border-radius:999px}
+.vector-profile-cta-arrow{display:inline-block;flex-shrink:0;font-size:1.1em;line-height:1}
+@media(max-width:600px){.vector-analysis-walk{margin-top:68px;margin-bottom:-54px}.vector-profile-next .pill{width:auto;max-width:100%;padding:12px 15px;font-size:clamp(11px,3.1vw,14px);gap:5px;white-space:nowrap;letter-spacing:-.02em}}
