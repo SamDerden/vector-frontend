@@ -561,3 +561,20 @@
 .vector-opportunity-card .pill{width:100%;white-space:normal;margin-top:auto}
 .vector-flow-next{display:flex;justify-content:flex-end;padding:18px 0}
 @media(max-width:600px){.vector-opportunities{padding:12px}.vector-opportunities-hero{gap:8px;padding:14px}.vector-opportunities-hero img{width:24%;height:100px}.vector-profile-review,.vector-alternatives,.vector-opportunity-card{padding:16px}.vector-flow-nav .pill{width:100%}.vector-alternatives-list,.vector-opportunities-grid{grid-template-columns:1fr}.vector-flow-next .pill{width:100%;white-space:normal}}
+
+/* Analysis screen: mascots approaching each other on a soft illustrated path. */
+.vector-analysis-screen{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:20px}
+.vector-analysis-screen>.work-card{width:100%;box-sizing:border-box}
+.vector-analysis-walk{position:relative;width:min(100%,900px);height:clamp(165px,28vw,285px);margin:0 auto 18px;overflow:hidden;isolation:isolate}
+.vector-analysis-trail{position:absolute;left:7%;right:7%;bottom:11%;height:35%;border-radius:50%;background:radial-gradient(ellipse at center,#d7efe8a8 0%,#e0eafca8 43%,transparent 74%)}
+.vector-analysis-trail-line{position:absolute;left:9%;right:9%;bottom:28%;height:30%;border-bottom:5px dashed #8dc8c3;border-radius:50%;transform:rotate(-1deg);opacity:.7}
+.vector-analysis-walk img{position:absolute;bottom:8%;height:87%;max-width:42%;object-fit:contain;filter:drop-shadow(0 8px 8px #728ab02c);will-change:transform}
+.vector-analysis-snegurochka{left:5%;animation:vector-snow-walk 3.8s ease-in-out infinite alternate}
+.vector-analysis-leshii{right:5%;animation:vector-leshii-walk 3.8s ease-in-out infinite alternate}
+.vector-analysis-trail-sparkle{position:absolute;color:#56bdb4;font-size:clamp(13px,2.4vw,22px);animation:vector-trail-glow 2.5s ease-in-out infinite alternate}
+.sparkle-one{left:31%;top:4%}.sparkle-two{left:51%;top:17%;animation-delay:.7s}.sparkle-three{right:25%;top:5%;animation-delay:1.3s}
+@keyframes vector-snow-walk{from{transform:translateX(0) translateY(0)}to{transform:translateX(32%) translateY(-4px)}}
+@keyframes vector-leshii-walk{from{transform:translateX(0) translateY(0)}to{transform:translateX(-32%) translateY(-4px)}}
+@keyframes vector-trail-glow{from{opacity:.35;transform:scale(.85)}to{opacity:1;transform:scale(1.15)}}
+@media(max-width:600px){.vector-analysis-screen{gap:12px}.vector-analysis-walk{height:190px;margin:0 auto 10px}.vector-analysis-walk img{height:80%;max-width:44%}.vector-analysis-snegurochka{left:0}.vector-analysis-leshii{right:0}.vector-analysis-trail{left:0;right:0;bottom:9%}}
+@media(prefers-reduced-motion:reduce){.vector-analysis-walk img,.vector-analysis-trail-sparkle{animation:none!important}}
