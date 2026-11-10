@@ -30,6 +30,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function publicJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 function readPayload(value: unknown): Record<string, unknown> {
   if (typeof value === "string") {
     try {
@@ -106,7 +110,7 @@ export function sofiPublicFields(row: Record<string, unknown>): Record<string, u
     fields.generation = generation;
   }
   if (unmappedHypotheses.length > 0) {
-    fields.unmappedHypotheses = unmappedHypotheses;
+    fields.unmappedHypotheses = publicJson(unmappedHypotheses);
   }
   return fields;
 }

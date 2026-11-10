@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { isMissingSchemaError, pool, query } from "@/lib/db";
 import { handleError, jsonError } from "@/lib/http";
+import { parseIdempotencyKey } from "@/lib/generation-jobs";
 import { executeGenerate } from "@/lib/sofi-generate";
 import { runSofiPipeline } from "@/lib/sofi-pipeline";
 import { requireExistingSession } from "@/lib/session";
@@ -11,6 +12,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    const idempotency = parseIdempotencyKey(request.headers.get("idempotency-key"));
+    if (!idempotency.ok) {
+      return jsonError("Idempotency-Key must be a UUID", 400);
+    }
+
     const session = await requireExistingSession(request);
     if ("error" in session) {
       return session.error;
@@ -30,6 +36,7 @@ export async function POST(request: NextRequest) {
     const outcome = await executeGenerate({
       sessionId: session.sessionId,
       body: rawBody,
+      idempotencyKey: idempotency.key,
       deps: {
         query,
         connect: () => pool.connect(),
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
       return jsonError(outcome.error, outcome.status, outcome.details);
     }
 
-    return NextResponse.json(outcome.body, { status: 201 });
+    return NextResponse.json(outcome.body, { status: outcome.status });
   } catch (error) {
     if (isMissingSchemaError(error)) {
       return jsonError(

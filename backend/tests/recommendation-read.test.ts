@@ -6,6 +6,7 @@ import {
   fetchLatestRecommendation,
   savedRecommendationBody,
   sessionRecommendationBody,
+  sofiPublicFields,
   type DbQuery,
 } from "../lib/recommendation-view.ts";
 
@@ -259,4 +260,44 @@ test("each session reads only its own recommendation", async () => {
     (sessionRecommendationBody(second!).generation as { mode: string }).mode,
     "llm"
   );
+});
+
+test("POST and GET JSON omit an undefined whatToTry and keep a real one", () => {
+  const payload = {
+    warnings: [],
+    disclaimer: null,
+    interestTags: [],
+    generation: { mode: "llm", tier: "9-11" },
+    hypotheses: [
+      {
+        catalogProfessionId: "prof_404",
+        mapping: "unmapped",
+        title: "Без подсказки",
+        whatToTry: undefined,
+        legacyCompatible: false,
+      },
+      {
+        catalogProfessionId: "prof_004",
+        mapping: "unmapped",
+        title: "С подсказкой",
+        whatToTry: "Посмотреть одну пробу",
+        legacyCompatible: false,
+      },
+    ],
+  };
+  const posted = sofiPublicFields({
+    ai_payload: payload,
+    generation_mode: "llm",
+  });
+  const stored = sofiPublicFields({
+    ai_payload: JSON.parse(JSON.stringify(payload)),
+    generation_mode: "llm",
+  });
+  const postedJson = JSON.parse(JSON.stringify(posted));
+  const storedJson = JSON.parse(JSON.stringify(stored));
+  assert.deepEqual(postedJson.unmappedHypotheses, storedJson.unmappedHypotheses);
+  const items = postedJson.unmappedHypotheses as Array<Record<string, unknown>>;
+  assert.equal(Object.hasOwn(items[0], "whatToTry"), false);
+  assert.equal(items[1].whatToTry, "Посмотреть одну пробу");
+  assert.equal(JSON.stringify(items).includes('"whatToTry":null'), false);
 });

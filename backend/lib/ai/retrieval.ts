@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import { Dossier } from "./dossier";
 import ragConfig from "@/config/rag.config.json";
 import axios from "axios";
+import { embeddingVectorsUsable, readRecordedEmbeddingModel } from "./index-contract";
 import { gatewayEndpoint, readEmbeddingsGateway } from "./gateway-env";
 
 // ---------- Типы ----------
@@ -34,6 +35,8 @@ interface IndexEntry {
 interface CatalogIndex {
   catalog_version: string;
   entries: IndexEntry[];
+  model?: unknown;
+  embedding_model?: unknown;
 }
 
 interface NormalizedCatalogSnapshot {
@@ -300,16 +303,16 @@ export async function retrieve(
   const catalog = JSON.parse(catalogRaw) as NormalizedCatalogSnapshot;
   const indexIsCurrent = index.catalog_version === catalog.version;
   // The query and index MUST use the same embedding model.
-  const configuredModel = readEmbeddingsGateway(process.env)?.model;
-  const indexModel = (index as CatalogIndex & { embedding_model?: string }).embedding_model;
-  const vectorsUsable = indexIsCurrent && (
-    process.env.USE_MOCK_EMBEDDINGS === "true" ||
-    Boolean(configuredModel && indexModel && configuredModel === indexModel)
-  ) && index.entries.length > 0 && index.entries.every(entry =>
-    Array.isArray(entry.vector) && entry.vector.length > 0 &&
-    entry.vector.length === index.entries[0].vector.length &&
-    entry.vector.every(value => Number.isFinite(value))
-  );
+  // `model` is the legacy field; `embedding_model` is the current one.
+  const recorded = readRecordedEmbeddingModel(index);
+  const configuredModel = readEmbeddingsGateway(process.env)?.model ?? null;
+  const vectorsUsable = embeddingVectorsUsable({
+    catalogVersionMatches: indexIsCurrent,
+    recordedModel: recorded.conflict ? null : recorded.model,
+    configuredModel,
+    allowMock: process.env.USE_MOCK_EMBEDDINGS === "true",
+    vectors: index.entries.map((entry) => entry.vector),
+  });
   const entries = indexIsCurrent
     ? index.entries
     : catalog.chunks.map((chunk, index) => ({
@@ -341,6 +344,7 @@ export async function retrieve(
   let queryVectors: number[][] = [];
   const allQueryTexts = queries.map((query) => query.text);
   if (!indexIsCurrent) warnings.add("catalog_index_stale_lexical_fallback");
+  else if (recorded.conflict && process.env.USE_MOCK_EMBEDDINGS !== "true") warnings.add("catalog_index_model_conflict_lexical_fallback");
   else if (!vectorsUsable) warnings.add("catalog_index_model_unverified_lexical_fallback");
   if (vectorsUsable && isMock) {
     try {

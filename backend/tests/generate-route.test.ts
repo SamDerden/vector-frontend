@@ -671,8 +671,11 @@ test("POST and GET return the same Sofi fields", async () => {
     assert.equal(outcome.ok, true, item.name);
     if (!outcome.ok) continue;
     const saved = savedBodyFromInsert(harness.inserts[0]);
+    const postedJson = JSON.parse(JSON.stringify(outcome.body));
+    const savedJson = JSON.parse(JSON.stringify(saved));
     for (const field of fields) {
       assert.deepEqual(outcome.body[field], saved[field], `${item.name}:${field}`);
+      assert.deepEqual(postedJson[field], savedJson[field], `${item.name}:${field}:http-json`);
     }
     assert.equal(outcome.body.status, "generated");
     assert.equal(saved.status, "saved");

@@ -1,0 +1,26 @@
+# Isolated generation-job stand. It does not start the app, worker, or an AI model.
+# Project, container, volume, database, user, and host port belong only to this file.
+name: vector-prof-generation-stand
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vector-prof-generation-stand-db
+    restart: "no"
+    environment:
+      POSTGRES_DB: vector_prof_generation_stand
+      POSTGRES_USER: generation_stand
+      POSTGRES_PASSWORD: generation_stand_local_only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - vector_prof_generation_stand_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U generation_stand -d vector_prof_generation_stand"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  vector_prof_generation_stand_pgdata:
+    name: vector_prof_generation_stand_pgdata

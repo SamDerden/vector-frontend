@@ -245,6 +245,11 @@ function createWorld(): World {
       return row ? rowsOf([row]) : empty();
     }
 
+    if (text.includes("FROM generation_jobs")) {
+      if (!bindsSession(text)) throw new Error("generation job query must bind the session");
+      return empty();
+    }
+
     if (text.includes("FROM reflections")) {
       if (!bindsSession(text)) {
         return rowsOf([...world.reflections.values()].flat());

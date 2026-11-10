@@ -8,7 +8,23 @@ import {
   validateClarificationAnswers,
 } from "./clarification.ts";
 import { isUuid } from "./legacy-ai.ts";
-import { sofiPublicFields } from "./recommendation-view.ts";
+import { savedRecommendationBody, sofiPublicFields } from "./recommendation-view.ts";
+import {
+  CLARIFICATION_VERSION_SQL,
+  DIAGNOSTIC_VERSION_SQL,
+  TRACK_SQL,
+  claimGenerationJob,
+  completeOwnedGenerationJob,
+  failGenerationJob,
+  generationInputHash,
+  KEEP_LEASE_SQL,
+  publicErrorCode,
+  inProgressBody,
+  loadOwnedRecommendation,
+  readGenerationJob,
+  type GenerationInputSnapshot,
+  type GenerationJob,
+} from "./generation-jobs.ts";
 import {
   buildPathwayOptions,
   type CatalogOpportunity,
@@ -21,11 +37,18 @@ import {
   adaptSofiResult,
   prepareSofiInput,
   tierForGrade,
+  type AgeTier,
   type AnswerValue,
+  type PreparedSofiInput,
   type ProfessionCatalogRow,
   type SofiModuleResult,
 } from "./sofi-adapter.ts";
 import type { SofiPipelineInput } from "./sofi-pipeline.ts";
+import {
+  programsVisibleForTier,
+  publicSkillName,
+  resolveCatalogActivities,
+} from "./ai/presentation.ts";
 
 export type DbQueryResult = {
   rowCount: number | null;
@@ -44,10 +67,11 @@ export type GenerateDeps = {
   }>;
   pipeline: (input: SofiPipelineInput) => Promise<SofiModuleResult>;
   modelName?: string;
+  leaseRenewMs?: number;
 };
 
 export type GenerateOutcome =
-  | { ok: true; status: 201; body: Record<string, unknown> }
+  | { ok: true; status: 201 | 202; body: Record<string, unknown> }
   | { ok: false; status: number; error: string; details?: unknown };
 
 const JUNIOR_PATHWAYS: PathwayOption[] = (
@@ -65,6 +89,11 @@ const MIDDLE_PATHWAYS: PathwayOption[] = (
   available: false,
   note: "Для 5–8 классов показываем профессии без колледжей, вузов и образовательных программ.",
 }));
+
+function stampForSnapshot(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  return typeof value === "string" ? value : "";
+}
 
 function questionnaireName(grade: number): string {
   const slug = questionnaireByGrade.by_grade[
@@ -115,9 +144,144 @@ function asOpportunity(row: Record<string, unknown>): CatalogOpportunity {
   };
 }
 
+const CLARIFICATION_LOAD_SQL = `SELECT
+       json_agg(
+         json_build_object(
+           'questionId', ca.question_id,
+           'answer', ca.answer
+         )
+         ORDER BY ca.created_at
+       ) AS answers
+     FROM clarifications c
+     JOIN clarification_answers ca
+       ON ca.clarification_id = c.id
+     WHERE c.session_id = $1
+     GROUP BY c.id, c.submitted_at
+     ORDER BY c.submitted_at DESC
+     LIMIT 1`;
+
+function mapClarificationAnswers(value: unknown): Array<{ questionId: string; answer: AnswerValue }> {
+  return (Array.isArray(value) ? value : [])
+    .slice(0, 6)
+    .map((item) => {
+      const answer = item as Record<string, unknown>;
+      return {
+        questionId: String(answer.questionId ?? ""),
+        answer: asAnswerValue(answer.answer),
+      };
+    });
+}
+
+async function writeClarificationAnswers(
+  deps: GenerateDeps,
+  params: {
+    sessionId: string;
+    diagnosticId: string;
+    answers: Parameters<typeof saveClarificationAnswers>[1]["answers"];
+  }
+) {
+  const client = await deps.connect();
+  try {
+    await client.query("BEGIN");
+    await saveClarificationAnswers(client as PoolClient, params);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+const RECOMMENDATION_INSERT_SQL = `INSERT INTO recommendations (
+       session_id,
+       summary,
+       hypotheses,
+       trial_ids,
+       next_step,
+       pathways,
+       model_name,
+       prompt_version,
+       catalog_version,
+       config_version,
+       generation_mode,
+       ai_payload
+     )
+     VALUES (
+       $1, $2, $3::jsonb, $4::uuid[], $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb
+     )
+     RETURNING id, created_at`;
+
+export const KEYED_RECOMMENDATION_INSERT_SQL = `INSERT INTO recommendations (
+       session_id,
+       summary,
+       hypotheses,
+       trial_ids,
+       next_step,
+       pathways,
+       model_name,
+       prompt_version,
+       catalog_version,
+       config_version,
+       generation_mode,
+       ai_payload,
+       generation_job_id
+     )
+     VALUES (
+       $1, $2, $3::jsonb, $4::uuid[], $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb, $13
+     )
+     RETURNING id, created_at`;
+
+export const LINKED_RECOMMENDATION_SQL = `SELECT id
+FROM recommendations
+WHERE generation_job_id = $1 AND session_id = $2`;
+
+export const PROFESSIONS_BY_IDS_SQL = `SELECT id, title, graph_profession_id
+FROM professions
+WHERE id = ANY($1::uuid[])`;
+
+function uniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === "23505";
+}
+
+function storedHypothesesTrials(hypotheses: unknown): unknown[] {
+  if (!Array.isArray(hypotheses)) return [];
+  const seen = new Set<string>();
+  const trials: unknown[] = [];
+  for (const item of hypotheses) {
+    const list = item && typeof item === "object" && Array.isArray((item as { trials?: unknown }).trials)
+      ? (item as { trials: unknown[] }).trials
+      : [];
+    for (const trial of list) {
+      const id = trial && typeof trial === "object" ? String((trial as { id?: unknown }).id ?? "") : "";
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      trials.push(trial);
+    }
+  }
+  return trials;
+}
+
+function replayBody(row: Record<string, unknown>, job: GenerationJob): Record<string, unknown> {
+  const saved = savedRecommendationBody(row, storedHypothesesTrials(row.hypotheses));
+  const payload = row.ai_payload && typeof row.ai_payload === "object" && !Array.isArray(row.ai_payload)
+    ? row.ai_payload as Record<string, unknown>
+    : {};
+  return {
+    ...saved,
+    status: "generated",
+    activities: Array.isArray(payload.activities) ? payload.activities : [],
+    requestId: job.clientRequestId,
+    jobStatus: "completed",
+    replayed: true,
+    stageTimings: job.stageTimings,
+  };
+}
+
 export async function executeGenerate(input: {
   sessionId: string;
   body: unknown;
+  idempotencyKey?: string | null;
   deps: GenerateDeps;
 }): Promise<GenerateOutcome> {
   const parsedBody = generateRecommendationsSchema.safeParse(input.body);
@@ -150,11 +314,12 @@ export async function executeGenerate(input: {
      LIMIT 1`,
     [input.sessionId]
   );
-  if (!diagnostic.rowCount) {
+    if (!diagnostic.rowCount) {
     return {
       ok: false,
       status: 409,
       error: "Complete the diagnostic before generating recommendations",
+      details: { code: "diagnostic_required" },
     };
   }
 
@@ -172,41 +337,16 @@ export async function executeGenerate(input: {
       };
     }
 
-    const client = await input.deps.connect();
-    try {
-      await client.query("BEGIN");
-      await saveClarificationAnswers(client as PoolClient, {
+    if (!input.idempotencyKey) {
+      await writeClarificationAnswers(input.deps, {
         sessionId: input.sessionId,
         diagnosticId: String(diagnosticRow.id),
         answers: parsedBody.data.clarificationAnswers,
       });
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
     }
   }
 
-  const clarification = await input.deps.query(
-    `SELECT
-       json_agg(
-         json_build_object(
-           'questionId', ca.question_id,
-           'answer', ca.answer
-         )
-         ORDER BY ca.created_at
-       ) AS answers
-     FROM clarifications c
-     JOIN clarification_answers ca
-       ON ca.clarification_id = c.id
-     WHERE c.session_id = $1
-     GROUP BY c.id, c.submitted_at
-     ORDER BY c.submitted_at DESC
-     LIMIT 1`,
-    [input.sessionId]
-  );
+  const clarification = await input.deps.query(CLARIFICATION_LOAD_SQL, [input.sessionId]);
 
   const profileResult = await input.deps.query(
     `SELECT school_grade, municipality
@@ -221,6 +361,7 @@ export async function executeGenerate(input: {
       ok: false,
       status: 409,
       error: new MissingSchoolGradeError().message,
+      details: { code: "school_grade_required" },
     };
   }
 
@@ -249,18 +390,15 @@ export async function executeGenerate(input: {
       questionnaire: storedQuestionnaire || questionnaireName(schoolGrade),
     };
   });
-  const clarificationAnswers = (Array.isArray(clarification.rows[0]?.answers)
-    ? clarification.rows[0].answers
-    : []
-  )
-    .slice(0, 6)
-    .map((item) => {
-      const answer = item as Record<string, unknown>;
-      return {
-        questionId: String(answer.questionId ?? ""),
-        answer: asAnswerValue(answer.answer),
-      };
-    });
+  const clarificationAnswers = mapClarificationAnswers(clarification.rows[0]?.answers);
+  const suppliedClarifications = parsedBody.data.clarificationAnswers
+    ? mapClarificationAnswers(parsedBody.data.clarificationAnswers)
+    : null;
+  // A keyed request freezes the validated body. The pipeline, snapshot and hash
+  // must use that same input. A request without a key keeps the stored reload.
+  const generationClarifications = input.idempotencyKey
+    ? (suppliedClarifications ?? clarificationAnswers)
+    : clarificationAnswers;
   const professions: ProfessionCatalogRow[] = professionsResult.rows.map((row) => ({
     id: String(row.id),
     graphProfessionId: typeof row.graph_profession_id === "string"
@@ -281,7 +419,7 @@ export async function executeGenerate(input: {
           : "",
       },
       diagnosticAnswers,
-      clarificationAnswers,
+      clarificationAnswers: generationClarifications,
     });
   } catch (error) {
     if (error instanceof MissingSchoolGradeError) {
@@ -290,16 +428,230 @@ export async function executeGenerate(input: {
     throw error;
   }
 
+  let ownedJob: GenerationJob | null = null;
+  if (input.idempotencyKey) {
+    const [trackRow, diagnosticVersion, clarificationVersion] = await Promise.all([
+      input.deps.query(TRACK_SQL, [input.sessionId]),
+      input.deps.query(DIAGNOSTIC_VERSION_SQL, [String(diagnosticRow.id), input.sessionId]),
+      input.deps.query(CLARIFICATION_VERSION_SQL, [input.sessionId]),
+    ]);
+    const snapshot: GenerationInputSnapshot = {
+      schemaVersion: 1,
+      schoolGrade,
+      municipality: typeof profile.municipality === "string" ? profile.municipality : "",
+      trackType: typeof trackRow.rows[0]?.track_type === "string" ? trackRow.rows[0].track_type : "",
+      diagnosticId: String(diagnosticRow.id),
+      diagnosticSubmittedAt: stampForSnapshot(diagnosticVersion.rows[0]?.submitted_at),
+      clarificationId: suppliedClarifications || clarificationVersion.rows[0]?.id == null
+        ? ""
+        : String(clarificationVersion.rows[0].id),
+      clarificationSubmittedAt: suppliedClarifications
+        ? ""
+        : stampForSnapshot(clarificationVersion.rows[0]?.submitted_at),
+      diagnosticAnswers,
+      clarificationAnswers: generationClarifications,
+      professionIds: professions.map((item) => item.id),
+    };
+    const inputHash = generationInputHash(snapshot);
+    const claim = await claimGenerationJob(input.deps.query, {
+      sessionId: input.sessionId,
+      clientRequestId: input.idempotencyKey,
+      inputHash,
+      snapshot,
+    });
+    if (claim.kind === "conflict") {
+      return {
+        ok: false,
+        status: 409,
+        error: "Idempotency key was already used with different input",
+        details: { code: "idempotency_conflict", requestId: input.idempotencyKey, jobStatus: "conflict" },
+      };
+    }
+    if (claim.kind === "in_progress") {
+      return { ok: true, status: 202, body: inProgressBody(claim.job) };
+    }
+    if (claim.kind === "failed" || claim.kind === "unavailable") {
+      const incomplete = claim.kind === "unavailable" || claim.job.status === "completed";
+      return {
+        ok: false,
+        status: 502,
+        error: "AI service request failed",
+        details: {
+          requestId: input.idempotencyKey,
+          jobStatus: "failed",
+          errorCode: incomplete ? "incomplete_result" : publicErrorCode(claim.job.errorCode ?? "pipeline_failed"),
+        },
+      };
+    }
+    if (claim.kind === "replay") {
+      const stored = await loadOwnedRecommendation(
+        input.deps.query,
+        claim.job.recommendationId ?? "",
+        input.sessionId
+      );
+      if (!stored) {
+        return {
+          ok: false,
+          status: 502,
+          error: "AI service request failed",
+          details: { requestId: input.idempotencyKey, jobStatus: "failed", errorCode: "incomplete_result" },
+        };
+      }
+      return { ok: true, status: 201, body: replayBody(stored, claim.job) };
+    }
+    ownedJob = claim.job;
+    if (suppliedClarifications && parsedBody.data.clarificationAnswers) {
+      try {
+        await writeClarificationAnswers(input.deps, {
+          sessionId: input.sessionId,
+          diagnosticId: String(diagnosticRow.id),
+          answers: parsedBody.data.clarificationAnswers,
+        });
+      } catch (error) {
+        await failGenerationJob(input.deps.query, {
+          jobId: ownedJob.id,
+          sessionId: input.sessionId,
+          errorCode: "persist_failed",
+          stageTimings: {},
+          owner: ownedJob.lockedBy ?? "",
+        }).catch((failure: unknown) => {
+          console.error(
+            "generation job failure was not recorded",
+            failure instanceof Error ? failure.name : "unknown"
+          );
+        });
+        console.error(
+          "clarification persist failed",
+          error instanceof Error ? error.name : "unknown"
+        );
+        return {
+          ok: false,
+          status: 502,
+          error: "AI service request failed",
+          details: { requestId: input.idempotencyKey, jobStatus: "failed", errorCode: "persist_failed" },
+        };
+      }
+    }
+  }
+
+  return finishOwnedGeneration({
+    deps: input.deps,
+    sessionId: input.sessionId,
+    idempotencyKey: input.idempotencyKey ?? null,
+    ownedJob,
+    prepared,
+    professions,
+    tier,
+    titles,
+    ownFailure: true,
+  });
+}
+
+async function outcomeForCurrentJob(
+  deps: GenerateDeps,
+  sessionId: string,
+  requestId: string | null
+): Promise<GenerateOutcome> {
+  if (!requestId) {
+    return { ok: false, status: 502, error: "AI service request failed" };
+  }
+  const job = await readGenerationJob(deps.query, sessionId, requestId);
+  if (job?.status === "completed" && job.recommendationId) {
+    const row = await loadOwnedRecommendation(deps.query, job.recommendationId, sessionId);
+    if (row) return { ok: true, status: 201, body: replayBody(row, job) };
+  }
+  if (job && (job.status === "pending" || job.status === "running")) {
+    return { ok: true, status: 202, body: inProgressBody(job) };
+  }
+  return {
+    ok: false,
+    status: 502,
+    error: "AI service request failed",
+    details: {
+      requestId,
+      jobStatus: "failed",
+      errorCode: publicErrorCode(job?.errorCode ?? "incomplete_result"),
+    },
+  };
+}
+
+function startOwnedLease(deps: GenerateDeps, job: GenerationJob): () => void {
+  if (!job.lockedBy) return () => undefined;
+  const timer = setInterval(() => {
+    void deps.query(KEEP_LEASE_SQL, [job.id, job.sessionId, job.lockedBy]).catch((error: unknown) => {
+      console.error("generation lease was not renewed", error instanceof Error ? error.name : "unknown");
+    });
+  }, deps.leaseRenewMs ?? 30_000);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
+async function retainOwnedJob(deps: GenerateDeps, job: GenerationJob): Promise<boolean> {
+  if (!job.lockedBy) return false;
+  const kept = await deps.query(KEEP_LEASE_SQL, [job.id, job.sessionId, job.lockedBy]);
+  return (kept.rowCount ?? kept.rows.length) > 0;
+}
+
+async function finishOwnedGeneration(source: {
+  deps: GenerateDeps;
+  sessionId: string;
+  idempotencyKey: string | null;
+  ownedJob: GenerationJob | null;
+  prepared: PreparedSofiInput;
+  professions: ProfessionCatalogRow[];
+  tier: AgeTier;
+  titles: Map<string, string>;
+  ownFailure: boolean;
+}): Promise<GenerateOutcome> {
+  const input = {
+    deps: source.deps,
+    sessionId: source.sessionId,
+    idempotencyKey: source.idempotencyKey,
+  };
+  const { ownedJob, prepared, professions, tier, titles, ownFailure } = source;
+  const stopLease = ownedJob ? startOwnedLease(input.deps, ownedJob) : () => undefined;
+  try {
+  if (ownedJob && !(await retainOwnedJob(input.deps, ownedJob))) {
+    return outcomeForCurrentJob(input.deps, input.sessionId, input.idempotencyKey);
+  }
   let sofiResult: SofiModuleResult;
+  const pipelineStarted = Date.now();
   try {
     sofiResult = await input.deps.pipeline({ prepared, professions });
   } catch (error) {
+    const pipelineDurationMs = Date.now() - pipelineStarted;
     console.error(
       "Sofi pipeline failed",
-      error instanceof Error ? error.message : "unknown error"
+      error instanceof Error ? error.name : "unknown error"
     );
-    return { ok: false, status: 502, error: "AI service request failed" };
+    if (ownedJob && ownFailure && ownedJob.lockedBy) {
+      const failed = await failGenerationJob(input.deps.query, {
+        jobId: ownedJob.id,
+        sessionId: input.sessionId,
+        errorCode: "pipeline_failed",
+        stageTimings: { pipeline: { durationMs: pipelineDurationMs } },
+        owner: ownedJob.lockedBy,
+      }).catch((failure: unknown) => {
+        console.error(
+          "generation job failure was not recorded",
+          failure instanceof Error ? failure.name : "unknown"
+        );
+        return { rowCount: 0, rows: [] };
+      });
+      if ((failed.rowCount ?? failed.rows.length) < 1) {
+        return outcomeForCurrentJob(input.deps, input.sessionId, input.idempotencyKey);
+      }
+    }
+    return {
+      ok: false,
+      status: 502,
+      error: "AI service request failed",
+      details: ownedJob
+        ? { requestId: input.idempotencyKey, jobStatus: "failed", errorCode: "pipeline_failed" }
+        : undefined,
+    };
   }
+  const pipelineDurationMs = Date.now() - pipelineStarted;
 
   const adapted = adaptSofiResult(sofiResult, professions);
   console.log("[Sofi mapping] result:",JSON.stringify({rawHypotheses:sofiResult.hypotheses?.length??0,mapped:adapted.hypotheses.length,unmapped:adapted.unmapped.length,unmappedIds:adapted.unmapped.slice(0,5).map(item=>item.catalogProfessionId),generationMode:sofiResult.generation?.mode??null}));
@@ -327,13 +679,7 @@ export async function executeGenerate(input: {
   } catch (error) {
     console.warn("[Sofi mapping] Skill reference unavailable", error instanceof Error ? error.message : "unknown");
   }
-  const publicSkill = (value: unknown): string | null => {
-    if (typeof value !== "string") return null;
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    if (/^skill[_-]\\d+$/i.test(trimmed)) return skillNames.get(trimmed) ?? null;
-    return trimmed;
-  };
+  const publicSkill = (value: unknown): string | null => publicSkillName(value, skillNames);
   const hypotheses = junior
     ? []
     : adapted.aiPayload.hypotheses.flatMap((item) => {
@@ -402,9 +748,19 @@ export async function executeGenerate(input: {
   // catalog that the AI pipeline used, preserving the profession relationship.
   const graphTrialsById = new Map<string, Record<string, unknown>>();
   const graphProfessionsById = new Map<string, Record<string, unknown>>();
+  let catalogActivities: Array<{ id: string; title: string }> = [];
   try {
     const rawCatalog = await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8");
-    const catalog = JSON.parse(rawCatalog) as { professions?: Array<Record<string, unknown>> };
+    const catalog = JSON.parse(rawCatalog) as {
+      professions?: Array<Record<string, unknown>>;
+      trials?: Array<{ trial_id?: unknown; title?: unknown }>;
+    };
+    if (junior) {
+      catalogActivities = resolveCatalogActivities(
+        catalog.trials ?? [],
+        payload.activityIds
+      );
+    }
     const selected = new Set(payload.hypotheses.map(item => item.catalogProfessionId));
     for (const profession of catalog.professions ?? []) {
       const id = profession.profession_id;
@@ -471,20 +827,20 @@ export async function executeGenerate(input: {
       description: typeof description === "string" ? description : null,
       whatDoes: typeof profession?.what_kid_does === "string" ? profession.what_kid_does : null,
       skills,
-      programs: programs.map(program => ({
+      programs: programsVisibleForTier(tier) ? programs.map(program => ({
         id: String(program.program_id ?? ""),
         title: String(program.name ?? ""),
         level: typeof program.level === "string" ? program.level : null,
         organization: typeof program.organization_name === "string" ? program.organization_name : (program.organization && typeof program.organization === "object" ? String((program.organization as Record<string,unknown>).name ?? "") : null),
         website: program.organization && typeof program.organization === "object" && typeof (program.organization as Record<string,unknown>).website === "string" ? (program.organization as Record<string,unknown>).website : null,
         source: "catalog",
-      })).filter(program => program.id && program.title),
+      })).filter(program => program.id && program.title) : [],
       matchStrength: details?.matchStrength ?? null,
       industryName: typeof profession?.industry_name === "string" ? profession.industry_name : null,
       catalogProfessionId: details?.catalogProfessionId ?? null,
       trialIds: linkedTrials.map((trial) => String(trial.id)),
       trials: linkedTrials,
-      opportunities: professionOpportunities.get(hypothesis.professionId) ?? [],
+      opportunities: programsVisibleForTier(tier) ? professionOpportunities.get(hypothesis.professionId) ?? [] : [],
       whatToTry: details?.whatToTry ?? null,
     };
   });
@@ -498,40 +854,102 @@ export async function executeGenerate(input: {
   const nextStep = (sofiResult.nextStep ?? sofiResult.next_step ?? "").trim()
     || "Посмотри направления, которые получились по ответам.";
 
-  const saved = await input.deps.query(
-    `INSERT INTO recommendations (
-       session_id,
-       summary,
-       hypotheses,
-       trial_ids,
-       next_step,
-       pathways,
-       model_name,
-       prompt_version,
-       catalog_version,
-       config_version,
-       generation_mode,
-       ai_payload
-     )
-     VALUES (
-       $1, $2, $3::jsonb, $4::uuid[], $5, $6::jsonb, $7, $8, $9, $10, $11, $12::jsonb
-     )
-     RETURNING id, created_at`,
-    [
-      input.sessionId,
-      summary,
-      JSON.stringify(publicHypotheses),
-      savedTrialIds,
-      nextStep,
-      JSON.stringify(nextStepOptions),
-      modelName,
-      generation?.promptVersion ?? null,
-      generation?.catalogVersion ?? null,
-      generation?.configVersion ?? null,
-      mode,
-      JSON.stringify(payload),
-    ]
-  );
+  const storedPayload = ownedJob ? { ...payload, activities: catalogActivities } : payload;
+  const recommendationParams = [
+    input.sessionId,
+    summary,
+    JSON.stringify(publicHypotheses),
+    savedTrialIds,
+    nextStep,
+    JSON.stringify(nextStepOptions),
+    modelName,
+    generation?.promptVersion ?? null,
+    generation?.catalogVersion ?? null,
+    generation?.configVersion ?? null,
+    mode,
+    JSON.stringify(storedPayload),
+  ];
+  let saved;
+  let stageTimings: Record<string, { durationMs: number }> | null = null;
+  if (!ownedJob) {
+    saved = await input.deps.query(RECOMMENDATION_INSERT_SQL, recommendationParams);
+  } else {
+    const persistStarted = Date.now();
+    let recommendationId = "";
+    let lostOwnership = false;
+    const owner = ownedJob.lockedBy ?? "";
+    const insertClient = await input.deps.connect();
+    try {
+      await insertClient.query("BEGIN");
+      const kept = await insertClient.query(KEEP_LEASE_SQL, [ownedJob.id, input.sessionId, owner]);
+      if ((kept.rowCount ?? kept.rows.length) < 1) {
+        lostOwnership = true;
+        await insertClient.query("ROLLBACK");
+      } else {
+        saved = await insertClient.query(KEYED_RECOMMENDATION_INSERT_SQL, [
+          ...recommendationParams,
+          ownedJob.id,
+        ]);
+        const completed = await completeOwnedGenerationJob(insertClient.query, {
+          jobId: ownedJob.id,
+          sessionId: input.sessionId,
+          recommendationId: String(saved.rows[0]?.id ?? ""),
+          stageTimings: {
+            pipeline: { durationMs: pipelineDurationMs },
+            persist: { durationMs: Date.now() - persistStarted },
+          },
+          owner,
+        });
+        if ((completed.rowCount ?? completed.rows.length) < 1) {
+          throw new Error("generation job was no longer owned");
+        }
+        await insertClient.query("COMMIT");
+        recommendationId = saved.rows[0]?.id == null ? "" : String(saved.rows[0].id);
+      }
+    } catch (error) {
+      await insertClient.query("ROLLBACK").catch(() => undefined);
+      if (uniqueViolation(error)) {
+        const existing = await input.deps.query(LINKED_RECOMMENDATION_SQL, [ownedJob.id, input.sessionId]);
+        recommendationId = existing.rows[0]?.id == null ? "" : String(existing.rows[0].id);
+      }
+      if (!recommendationId) {
+        if (ownFailure && owner) {
+          await failGenerationJob(input.deps.query, {
+            jobId: ownedJob.id,
+            sessionId: input.sessionId,
+            errorCode: "persist_failed",
+            stageTimings: { pipeline: { durationMs: pipelineDurationMs } },
+            owner,
+          }).catch((failure: unknown) => {
+            console.error(
+              "generation job failure was not recorded",
+              failure instanceof Error ? failure.name : "unknown"
+            );
+          });
+        }
+        console.error(
+          "recommendation persist failed",
+          error instanceof Error ? error.name : "unknown"
+        );
+        return {
+          ok: false,
+          status: 502,
+          error: "AI service request failed",
+          details: { requestId: input.idempotencyKey, jobStatus: "failed", errorCode: "persist_failed" },
+        };
+      }
+    } finally {
+      insertClient.release();
+    }
+    if (lostOwnership && !recommendationId) {
+      return outcomeForCurrentJob(input.deps, input.sessionId, input.idempotencyKey);
+    }
+    stageTimings = {
+      pipeline: { durationMs: pipelineDurationMs },
+      persist: { durationMs: Date.now() - persistStarted },
+    };
+    saved = { rowCount: 1, rows: [{ id: recommendationId, created_at: saved?.rows[0]?.created_at ?? null }] };
+  }
   const result = saved.rows[0];
   const publicSofi = sofiPublicFields({
     ai_payload: payload,
@@ -550,12 +968,79 @@ export async function executeGenerate(input: {
       sessionId: input.sessionId,
       summary,
       hypotheses: publicHypotheses,
+      activities: catalogActivities,
       trials,
       nextStep,
       nextStepOptions,
       model: modelName,
       createdAt: result?.created_at ?? null,
       ...publicSofi,
+      ...(ownedJob
+        ? {
+            requestId: input.idempotencyKey,
+            jobStatus: "completed",
+            replayed: false,
+            stageTimings,
+          }
+        : {}),
     },
   };
+  } finally {
+    stopLease();
+  }
+}
+
+export async function runFrozenGeneration(args: {
+  deps: GenerateDeps;
+  sessionId: string;
+  requestId: string;
+  snapshot: GenerationInputSnapshot;
+  job: GenerationJob;
+}): Promise<GenerateOutcome> {
+  let prepared: PreparedSofiInput;
+  try {
+    prepared = prepareSofiInput({
+      profile: {
+        schoolGrade: args.snapshot.schoolGrade,
+        municipality: args.snapshot.municipality,
+      },
+      diagnosticAnswers: args.snapshot.diagnosticAnswers as Parameters<typeof prepareSofiInput>[0]["diagnosticAnswers"],
+      clarificationAnswers: args.snapshot.clarificationAnswers as Parameters<typeof prepareSofiInput>[0]["clarificationAnswers"],
+    });
+  } catch (error) {
+    if (error instanceof MissingSchoolGradeError) {
+      return {
+        ok: false,
+        status: 502,
+        error: "AI service request failed",
+        details: { requestId: args.requestId, jobStatus: "failed", errorCode: "input_unavailable" },
+      };
+    }
+    throw error;
+  }
+  const loaded = await args.deps.query(PROFESSIONS_BY_IDS_SQL, [args.snapshot.professionIds]);
+  const found = loaded.rows.map((row) => String(row.id)).sort();
+  const expected = [...args.snapshot.professionIds].sort();
+  if (expected.length === 0 || expected.join("\n") !== found.join("\n")) {
+    return {
+      ok: false,
+      status: 502,
+      error: "AI service request failed",
+      details: { requestId: args.requestId, jobStatus: "failed", errorCode: "input_unavailable" },
+    };
+  }
+  return finishOwnedGeneration({
+    deps: args.deps,
+    sessionId: args.sessionId,
+    idempotencyKey: args.requestId,
+    ownedJob: args.job,
+    prepared,
+    professions: loaded.rows.map((row) => ({
+      id: String(row.id),
+      graphProfessionId: typeof row.graph_profession_id === "string" ? row.graph_profession_id : null,
+    })),
+    tier: tierForGrade(args.snapshot.schoolGrade),
+    titles: new Map(loaded.rows.map((row) => [String(row.id), String(row.title ?? "")])),
+    ownFailure: false,
+  });
 }

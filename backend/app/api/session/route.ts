@@ -95,6 +95,28 @@ export async function GET(request: NextRequest) {
       [session.sessionId]
     );
 
+    let activeJob: { requestId: string; jobStatus: string; retryAfterMs: number } | undefined;
+    try {
+      const active = await query(
+        `SELECT client_request_id, status
+         FROM generation_jobs
+         WHERE session_id = $1 AND status IN ('pending', 'running')
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [session.sessionId]
+      );
+      const activeRow = active.rows[0];
+      if (activeRow && (activeRow.status === "pending" || activeRow.status === "running")) {
+        activeJob = {
+          requestId: String(activeRow.client_request_id),
+          jobStatus: String(activeRow.status),
+          retryAfterMs: 2000,
+        };
+      }
+    } catch (error) {
+      if (!isMissingSchemaError(error)) throw error;
+    }
+
     const diagnosticRow = diagnostic.rows[0] ?? null;
     const profileRow = profile.rows[0] ?? null;
 
@@ -127,6 +149,7 @@ export async function GET(request: NextRequest) {
         ? sessionRecommendationBody(recommendationRow)
         : null,
       reflections: reflections.rows,
+      ...(activeJob ? { activeJob } : {}),
     });
   } catch (error) {
     if (isMissingSchemaError(error)) {
