@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return session.error;
     }
 
-    await consumeLimit(query, "generate:global", 60, 30);
+    await consumeLimit(query, "generate:global", 60, 120);
     await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
     let rawBody: unknown = {};
     try {
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       sessionId: session.sessionId,
       body: rawBody,
       idempotencyKey: idempotency.key,
+      queueEnabled: process.env.GENERATION_WORKER_ENABLED === "true",
       deps: {
         query,
         connect: () => pool.connect(),
