@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { query } from "./db";
 import { jsonError } from "./http";
+import { ownsAnonymousSession, sessionProofCookieName } from "./session-proof";
 
 export const sessionIdSchema = z.string().uuid();
 
@@ -21,11 +22,27 @@ export function readSessionId(request: NextRequest) {
   return { sessionId: parsed.data };
 }
 
+export function sessionProofEnforced(): boolean {
+  return process.env.SESSION_PROOF_ENFORCED === "true";
+}
+
+export function authorizeSessionOwnership(request: NextRequest, sessionId: string) {
+  if (!sessionProofEnforced()) return null;
+  const proof = request.cookies.get(sessionProofCookieName(sessionId))?.value;
+  if (!ownsAnonymousSession(sessionId, proof)) {
+    return jsonError("Session ownership verification required", 403);
+  }
+  return null;
+}
+
 export async function requireExistingSession(request: NextRequest) {
   const header = readSessionId(request);
   if ("error" in header) {
     return header;
   }
+
+  const denied = authorizeSessionOwnership(request, header.sessionId);
+  if (denied) return { error: denied };
 
   const session = await query("SELECT id FROM sessions WHERE id = $1", [
     header.sessionId,
