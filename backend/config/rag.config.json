@@ -9,5 +9,5 @@
   "mmr_lambda": 0.72,
   "enable_riasec_mmr": false,
   "epsilon": 0.02,
-  "embedding_timeout_ms": 12000
+  "embedding_timeout_ms": 5000
 }
