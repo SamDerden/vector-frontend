@@ -880,3 +880,6 @@
  .vector-opportunities-grid{grid-template-columns:minmax(0,1fr)}
  .work-card,.demo-quiz-screen,.vector-trial-screen,.vector-opportunities,.vector-journey{border-radius:clamp(16px,4vw,24px)}
 }
+
+/* Demo student location is part of the original questionnaire metadata. */
+.demo-grid .demo-card .demo-card-city{display:block;font-size:clamp(11px,.95vw,13px);line-height:1.3;color:#596786;font-weight:600;overflow-wrap:anywhere}
