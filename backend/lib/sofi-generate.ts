@@ -666,7 +666,36 @@ async function finishOwnedGeneration(source: {
   }
   const pipelineDurationMs = Date.now() - pipelineStarted;
 
-  const adapted = adaptSofiResult(sofiResult, professions);
+  // Resolve missing legacy DB graph IDs only through unique, exact source-catalog titles.
+  // Never write to the professions table or invent profession identifiers.
+  let mappingRows = professions;
+  try {
+    const source = JSON.parse(await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8")) as {
+      professions?: Array<{ profession_id?: string; name?: string }>;
+    };
+    const byTitle = new Map<string, string[]>();
+    for (const entry of source.professions ?? []) {
+      if (!entry.profession_id || !entry.name) continue;
+      const key = entry.name.trim().toLocaleLowerCase("ru");
+      byTitle.set(key, [...(byTitle.get(key) ?? []), entry.profession_id]);
+    }
+    const dbCounts = new Map<string, number>();
+    for (const row of professions) {
+      const key = row.title.trim().toLocaleLowerCase("ru");
+      dbCounts.set(key, (dbCounts.get(key) ?? 0) + 1);
+    }
+    mappingRows = professions.map((row) => {
+      if (row.graphProfessionId) return row;
+      const key = row.title.trim().toLocaleLowerCase("ru");
+      const matches = byTitle.get(key) ?? [];
+      return matches.length === 1 && dbCounts.get(key) === 1
+        ? { ...row, graphProfessionId: matches[0] }
+        : row;
+    });
+  } catch (error) {
+    console.warn("[Sofi mapping] source catalog unavailable for exact-title resolution", error instanceof Error ? error.name : "unknown");
+  }
+  const adapted = adaptSofiResult(sofiResult, mappingRows);
   console.log("[Sofi mapping] result:",JSON.stringify({rawHypotheses:sofiResult.hypotheses?.length??0,mapped:adapted.hypotheses.length,unmapped:adapted.unmapped.length,unmappedIds:adapted.unmapped.slice(0,5).map(item=>item.catalogProfessionId),generationMode:sofiResult.generation?.mode??null}));
   const junior = tier === "1-4";
   // Keep catalog-backed recommendations visible even when the legacy SQL
