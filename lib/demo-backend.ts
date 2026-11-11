@@ -135,7 +135,7 @@ async function pollGenerationJob(
   signal: AbortSignal | undefined,
   fetchImpl: typeof fetch
 ): Promise<GeneratedRecommendation> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const response = await fetchImpl(`${API_BASE}/api/recommendations/jobs/${requestId}`, {
       cache: "no-store",
