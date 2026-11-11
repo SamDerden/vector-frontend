@@ -6,7 +6,7 @@ const source=readFileSync(new URL("../lib/demo-backend.ts",import.meta.url),"utf
 const page=readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
 
 test("demo and own sessions stay stable and separate",()=>{
-  assert.match(source,/browserSessionId\(generationSessionScope\(input\)\)/);
+  assert.match(source,/browserSessionId\(scope\)/);
   assert.doesNotMatch(source,/crypto\.randomUUID\(\)/);
 });
 function responseFor(path,response){
@@ -154,5 +154,49 @@ test("repeated 410 does not trigger unbounded session retries", async () => {
     );
     assert.equal(browser.calls.filter(call => call.url.endsWith("/api/track/select")).length, 2);
     assert.equal(browser.calls.some(call => call.url.endsWith("/api/diagnostic/submit")), false);
+  } finally { browser.restore(); }
+});
+
+test("expiry during diagnostic, clarification, or generation restarts the complete flow once", async () => {
+  const { generateDemoWithBackend } = await import("../lib/demo-backend.ts");
+  for (const endpoint of ["/api/diagnostic/submit", "/api/clarification/submit", "/api/recommendations/generate"]) {
+    let failures = 0;
+    const browser = installBrowser({ handler: path => {
+      if (path.endsWith(endpoint) && failures++ === 0) {
+        return { status: 410, body: JSON.stringify({ error: "Session expired" }) };
+      }
+      return responseFor(path);
+    } });
+    try {
+      const result = await generateDemoWithBackend({
+        grade: 7, track: "explore",
+        diagnosticAnswers: [{ questionId: "q1", answer: "science" }],
+        clarificationAnswers: six(["1","2","3","4","5","6"]),
+      });
+      assert.equal(result.result.summary, "ok");
+      const selections = browser.calls.filter(call => call.url.endsWith("/api/track/select"));
+      assert.equal(selections.length, 2);
+      assert.notEqual(selections[0].init.headers["X-Session-ID"], selections[1].init.headers["X-Session-ID"]);
+      const generated = browser.calls.filter(call => call.url.endsWith("/api/recommendations/generate"));
+      assert.equal(generated.length, endpoint.endsWith("/generate") ? 2 : 1);
+      if (generated.length === 2) {
+        assert.notEqual(generated[0].init.headers["Idempotency-Key"], generated[1].init.headers["Idempotency-Key"]);
+      }
+    } finally { browser.restore(); }
+  }
+});
+
+test("resume rotates an expired session without returning old recommendations", async () => {
+  const { resumeStoredGeneration } = await import("../lib/demo-backend.ts");
+  const browser = installBrowser({ handler: path => path.endsWith("/api/session")
+    ? { status: 410, body: JSON.stringify({ error: "Session expired" }) }
+    : responseFor(path) });
+  try {
+    const scope = { mode: "demo", studentId: 2 };
+    const original = "11111111-1111-4111-8111-111111111111";
+    browser.tabStorage.setItem("vector-session-demo-2", original);
+    const restored = await resumeStoredGeneration(scope);
+    assert.equal(restored.ok, false);
+    assert.notEqual(browser.tabStorage.getItem("vector-session-demo-2"), original);
   } finally { browser.restore(); }
 });
