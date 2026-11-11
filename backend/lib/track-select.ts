@@ -71,11 +71,19 @@ export async function executeTrackSelect(input: {
      VALUES ($1, $2, $3, now() + ($4::integer * interval '1 hour'), now(), now())
      ON CONFLICT (id)
      DO UPDATE SET track_type = EXCLUDED.track_type, updated_at = now()
-     WHERE sessions.expires_at IS NULL OR sessions.expires_at > now()`,
+     WHERE (sessions.expires_at IS NULL OR sessions.expires_at > now())
+       AND (sessions.session_mode IS NULL OR sessions.session_mode = EXCLUDED.session_mode)`,
     [input.sessionId, trackType, sessionMode, lifetimeHours]
   );
   if (inserted.rowCount === 0) {
-    return { ok: false, status: 410, error: "Session expired. Start a new session." };
+    const current = await input.query(
+      "SELECT session_mode, expires_at <= now() AS expired FROM sessions WHERE id = $1",
+      [input.sessionId]
+    );
+    if (current.rows[0]?.expired === true) {
+      return { ok: false, status: 410, error: "Session expired. Start a new session." };
+    }
+    return { ok: false, status: 409, error: "Session mode conflict. Start a new session." };
   }
 
   if (schoolGrade === undefined && confidenceBefore === undefined) {
