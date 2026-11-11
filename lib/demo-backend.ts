@@ -2,6 +2,7 @@ import { API_BASE } from "./api";
 import { generationConflictKind, presentGeneration } from "./generation-result";
 import {
   browserSessionId,
+  browserStorage,
   generationSessionScope,
   openGenerationRequest,
   readGenerationRequest,
@@ -99,10 +100,10 @@ export async function fetchClarificationQuestions() {
 
 export async function fetchStoredSession(
   scope: SessionScope,
-  storage: Pick<Storage, "getItem"> = globalThis.localStorage,
+  storage?: Pick<Storage, "getItem">,
   fetchImpl: typeof fetch = fetch
 ): Promise<{ status: number; body: unknown }> {
-  const headers = sessionHeader(scope, storage);
+  const headers = sessionHeader(scope, storage ?? browserStorage(scope));
   if (!headers) return { status: 404, body: null };
   const response = await fetchImpl(`${API_BASE}/api/session`, {
     cache: "no-store",
@@ -161,7 +162,7 @@ export async function resumeStoredGeneration(
   scope: SessionScope,
   options: { signal?: AbortSignal; storage?: Pick<Storage, "getItem" | "setItem">; fetchImpl?: typeof fetch } = {}
 ): Promise<GeneratedRecommendation | { ok: false; message: string } | null> {
-  const storage = options.storage ?? (typeof window === "undefined" ? globalThis.localStorage : window.localStorage);
+  const storage = options.storage ?? browserStorage(scope);
   const fetchImpl = options.fetchImpl ?? fetch;
   const headers = sessionHeader(scope, storage);
   if (!headers) return null;
@@ -223,7 +224,7 @@ export async function generateDemoWithBackend(input: {
   const scope = generationSessionScope(input);
   const session = browserSessionId(generationSessionScope(input));
   if (!session) throw new Error("Сессия доступна только в браузере");
-  const storage = input.storage ?? (typeof window === "undefined" ? globalThis.localStorage : window.localStorage);
+  const storage = input.storage ?? browserStorage(scope);
   const fetchImpl = input.fetchImpl ?? fetch;
   const requestId = openGenerationRequest(scope, storage);
   await request("/api/track/select", session, {trackType:input.dossier?"explore":input.track,schoolGrade:input.dossier?.grade??input.grade});
