@@ -1,12 +1,12 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
- * Server-only session ownership proof for anonymous demo visitors.
+ * Server-only session ownership proof for anonymous visitors.
  * The public UUID is a locator, never an authorization credential.
  * Do not put this proof in localStorage, URLs, logs, or JSON responses.
  *
- * The proof is deliberately not wired to API routes until issuance,
- * cookie scope, migration and end-to-end tests are implemented.
+ * Enforcement is controlled by SESSION_PROOF_ENFORCED. Do not enable it
+ * until existing sessions are migrated and end-to-end tests pass.
  */
 const PROOF_VERSION = "v1";
 const PROOF_BYTES = 32;
