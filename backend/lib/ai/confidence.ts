@@ -1,5 +1,5 @@
 // lib/ai/confidence.ts
-import confidenceRules from "@/config/confidence_rules.json";
+import confidenceRules from "@/config/confidence_rules.json" with { type: "json" };
 
 export interface ConfidenceSignals {
   match_strength: "strong" | "moderate" | "weak";
