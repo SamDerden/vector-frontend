@@ -48,3 +48,35 @@ export function verifySessionProof(
   const expected = signature(sessionId, nonce, key);
   return received.length === expected.length && timingSafeEqual(received, expected);
 }
+
+/**
+ * A distinct HttpOnly cookie per session supports switching between demo pupils
+ * without overwriting another pupil's proof. Never trust a client-supplied UUID
+ * alone as evidence of ownership.
+ */
+export function sessionProofCookieName(sessionId: string): string {
+  if (!UUID.test(sessionId)) throw new Error("Invalid session UUID");
+  return `vector_session_proof_${sessionId.toLowerCase().replace(/-/g, "")}`;
+}
+
+export function sessionProofCookieOptions(isProduction: boolean) {
+  return {
+    httpOnly: true as const,
+    secure: isProduction,
+    sameSite: "strict" as const,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  };
+}
+
+/**
+ * Authorization check for the eventual authenticated session gate.
+ * Fail closed on a missing or invalid proof; never silently fall back to UUID.
+ */
+export function ownsAnonymousSession(
+  sessionId: string,
+  cookieValue: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  return verifySessionProof(sessionId, cookieValue, env);
+}
