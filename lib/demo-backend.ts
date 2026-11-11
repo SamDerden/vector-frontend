@@ -6,6 +6,7 @@ import {
   generationSessionScope,
   openGenerationRequest,
   readGenerationRequest,
+  rotateSessionId,
   sessionHeader,
   settleGenerationRequest,
   type SessionScope,
@@ -82,7 +83,11 @@ async function request<T>(path: string, session: string, body: unknown): Promise
     body: JSON.stringify(body),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error || `Ошибка сервера ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(payload.error || `Ошибка сервера ${response.status}`) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
   return payload as T;
 }
 
@@ -222,12 +227,26 @@ export async function generateDemoWithBackend(input: {
   fetchImpl?: typeof fetch;
 }): Promise<GeneratedRecommendation> {
   const scope = generationSessionScope(input);
-  const session = browserSessionId(generationSessionScope(input));
+  let session = browserSessionId(scope);
   if (!session) throw new Error("Сессия доступна только в браузере");
   const storage = input.storage ?? browserStorage(scope);
   const fetchImpl = input.fetchImpl ?? fetch;
+  const trackBody = {
+    trackType: input.dossier ? "explore" : input.track,
+    schoolGrade: input.dossier?.grade ?? input.grade,
+    ...(input.dossier ? { demoStudentId: input.dossier.studentId } : {}),
+  };
+  try {
+    await request("/api/track/select", session, trackBody);
+  } catch (error) {
+    const status = error instanceof Error ? (error as Error & { status?: number }).status : undefined;
+    if (status !== 409 && status !== 410) throw error;
+    session = rotateSessionId(scope, storage);
+    // Retry only the initial session selection; never replay diagnostic or
+    // generation writes automatically after a failure on those endpoints.
+    await request("/api/track/select", session, trackBody);
+  }
   const requestId = openGenerationRequest(scope, storage);
-  await request("/api/track/select", session, {trackType:input.dossier?"explore":input.track,schoolGrade:input.dossier?.grade??input.grade,...(input.dossier ? { demoStudentId: input.dossier.studentId } : {})});
   const answers = input.dossier?.answers.map(({ questionId, answer }) => ({ questionId, answer }))
     ?? input.diagnosticAnswers
     ?? [];
