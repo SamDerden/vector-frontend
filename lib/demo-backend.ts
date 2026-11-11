@@ -174,7 +174,11 @@ export async function resumeStoredGeneration(
   const response = await fetchImpl(`${API_BASE}/api/session`, { cache: "no-store", headers, signal: options.signal });
   const raw = await response.text();
   const { payload, parsedJson } = readPayload(raw);
-  if (!parsedJson || !payload || typeof payload !== "object") return null;
+  if (response.status === 410) {
+    if (!options.signal?.aborted) rotateSessionId(scope, storage);
+    return { ok: false, message: "Срок действия сессии истёк. Начни анализ заново — ответы можно выбрать повторно." };
+  }
+  if (!response.ok || !parsedJson || !payload || typeof payload !== "object") return null;
   const body = payload as { activeJob?: { requestId?: string; jobStatus?: string }; recommendation?: Record<string, unknown> | null };
   const active = body.activeJob;
   if (active && (active.jobStatus === "pending" || active.jobStatus === "running") && typeof active.requestId === "string") {
@@ -246,37 +250,56 @@ export async function generateDemoWithBackend(input: {
     // generation writes automatically after a failure on those endpoints.
     await request("/api/track/select", session, trackBody);
   }
-  const requestId = openGenerationRequest(scope, storage);
   const answers = input.dossier?.answers.map(({ questionId, answer }) => ({ questionId, answer }))
     ?? input.diagnosticAnswers
     ?? [];
   if (!answers.length) throw new Error("Не заполнена исходная диагностика");
-  await request("/api/diagnostic/submit", session, { answers });
-  await request("/api/clarification/submit", session, { answers: input.clarificationAnswers });
-  const response = await fetchImpl(`${API_BASE}/api/recommendations/generate`, {
-    method: "POST",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json", "X-Session-ID": session, "Idempotency-Key": requestId },
-    body: JSON.stringify({}),
-    signal: input.signal,
-  });
-  const raw = await response.text();
-  const { payload, parsedJson } = readPayload(raw);
-  const presented = presentGeneration(response.status, parsedJson ? payload : null, parsedJson);
-  if (!presented.ok) {
-    if (terminalJobFailure(response.status, payload)) settleGenerationRequest(scope, storage);
-    throw new Error(presented.message);
-  }
-  if (presented.pending) {
+  // A 410 at any stage means the server rejected the expired session.
+  // Recreate the session and replay the user's already supplied answers once.
+  // Never retry a 409 from generation: that can be an idempotency conflict.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    if (input.signal?.aborted) throw new DOMException("Aborted", "AbortError");
     try {
-      const finished = await pollGenerationJob(session, presented.requestId, input.signal, fetchImpl);
+      await request("/api/diagnostic/submit", session, { answers });
+      await request("/api/clarification/submit", session, { answers: input.clarificationAnswers });
+      const requestId = openGenerationRequest(scope, storage);
+      const response = await fetchImpl(`${API_BASE}/api/recommendations/generate`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json", "X-Session-ID": session, "Idempotency-Key": requestId },
+        body: JSON.stringify({}),
+        signal: input.signal,
+      });
+      if (response.status === 410) {
+        const expired = new Error("Session expired") as Error & { status?: number };
+        expired.status = 410;
+        throw expired;
+      }
+      const raw = await response.text();
+      const { payload, parsedJson } = readPayload(raw);
+      const presented = presentGeneration(response.status, parsedJson ? payload : null, parsedJson);
+      if (!presented.ok) {
+        if (terminalJobFailure(response.status, payload)) settleGenerationRequest(scope, storage);
+        throw new Error(presented.message);
+      }
+      if (presented.pending) {
+        try {
+          const finished = await pollGenerationJob(session, presented.requestId, input.signal, fetchImpl);
+          settleGenerationRequest(scope, storage);
+          return finished;
+        } catch (error) {
+          if (isTerminalJobError(error)) settleGenerationRequest(scope, storage);
+          throw error;
+        }
+      }
       settleGenerationRequest(scope, storage);
-      return finished;
+      return { result: presented.body, notice: presented.notice };
     } catch (error) {
-      if (isTerminalJobError(error)) settleGenerationRequest(scope, storage);
-      throw error;
+      const status = error instanceof Error ? (error as Error & { status?: number }).status : undefined;
+      if (status !== 410 || attempt !== 0 || input.signal?.aborted) throw error;
+      session = rotateSessionId(scope, storage);
+      await request("/api/track/select", session, trackBody);
     }
   }
-  settleGenerationRequest(scope, storage);
-  return { result: presented.body, notice: presented.notice };
+  throw new Error("Не удалось восстановить сессию.");
 }
