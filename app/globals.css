@@ -840,9 +840,6 @@
  .illustrated-options,.vector-opportunities-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  .vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
 }
-@media(min-width:1801px){
- .nav-inner,main,.workspace,.demo-workspace,footer{max-width:1800px}
-}
 
 /* Unified responsive layout foundation — fluid spacing across phone, tablet and desktop.
    Component grids reflow by available width rather than fixed device presets. */
