@@ -6,17 +6,9 @@ import { activityTitles, interestLabels } from "@/lib/age-view";
 import { browserStorage, sessionHeader, type SessionScope } from "@/lib/session-store";
 import "./primary-experience.css";
 
-type Activity = { id: string; title: string; description: string; tags: string[]; steps: string[]; duration: string; adult: boolean };
+type Activity = { id: string; title: string; description: string; steps: string[]; duration: string; adult: boolean; organization?: string; municipality?: string; cost?: string; format?: string; sourceUrl?: string };
 type Stage = "interests" | "activities" | "route" | "reflection" | "complete";
 type Reflection = { feeling: "useful" | "unsure" | "not_useful"; difficulty: string; next: string };
-const ACTIVITIES: Activity[] = [
-  {id:"nature-observer",title:"Детектив природы",description:"Найди три разных листа и сравни их форму.",tags:["природа","экология","исследование","животные","растения"],steps:["Попроси взрослого пойти с тобой на прогулку.","Найди три разных листа, не срывая их с растений.","Нарисуй самый необычный и расскажи, чем он отличается."],duration:"20–30 минут",adult:true},
-  {id:"paper-bridge",title:"Мост из бумаги",description:"Построй бумажный мост и проверь, что он выдержит.",tags:["техника","конструирование","строительство","инженерия"],steps:["Возьми бумагу и две книги.","Попробуй построить мост между книгами.","Проверь мост лёгкими предметами и улучши конструкцию."],duration:"15–20 минут",adult:false},
-  {id:"story-maker",title:"Моя история",description:"Придумай короткую историю с неожиданным героем.",tags:["творчество","искусство","рисование","литература"],steps:["Придумай героя и место действия.","Нарисуй три картинки с началом, серединой и концом.","Расскажи историю другу или взрослому."],duration:"20 минут",adult:false},
-  {id:"kindness-project",title:"Маленькая помощь",description:"Придумай доброе дело и сделай его вместе со взрослым.",tags:["помощь","люди","общение","общество"],steps:["Подумай, кому нужна помощь.","Обсуди идею со взрослым.","Сделай доброе дело и вспомни, что получилось."],duration:"15–30 минут",adult:true},
-  {id:"pattern-hunt",title:"Охотник за закономерностями",description:"Найди повторяющиеся узоры вокруг себя.",tags:["логика","математика","данные","анализ","исследование"],steps:["Найди дома три повторяющихся узора.","Придумай свой узор из фигур.","Попроси друга угадать правило."],duration:"15 минут",adult:false},
-  {id:"game-designer",title:"Создай свою игру",description:"Придумай настольную игру с простыми правилами.",tags:["игры","организация","команда","творчество","программирование"],steps:["Придумай цель игры.","Нарисуй игровое поле или карточки.","Сыграй со взрослым и улучши правила."],duration:"30 минут",adult:true}
-];
 const icons = ["🌿","⚙️","🎨","🤝","🔎","🎲"];
 const initialReflection: Reflection = {feeling:"useful",difficulty:"clear",next:"try"};
 
@@ -41,17 +33,24 @@ export default function PrimaryExperience({result, grade, scope, notice, onResta
   const [expanded,setExpanded]=useState<string|null>(null);
   const key = "vector:primary:journey:" + (scope.mode==="demo" ? "demo:"+scope.studentId : "own");
   const interests = useMemo(()=>interestLabels(result?.interestTags),[result]);
-  const activities = useMemo(()=>{
-    const generated = activityTitles(result?.activities);
-    if (generated.length) return generated.map((item)=>ACTIVITIES.find(a=>a.id===item.id) ?? {
-      id:item.id,title:item.title,description:"Активность из подтверждённого каталога.",tags:[],steps:[],duration:"",adult:false
+  const activities = useMemo<Activity[]>(()=>{
+    const records = Array.isArray(result?.activities) ? result.activities : [];
+    const allowed = new Set(activityTitles(records).map(item=>item.id));
+    return records.flatMap((value):Activity[]=>{
+      if(!value || typeof value!=="object")return [];
+      const item=value as Record<string,unknown>;
+      if(typeof item.id!=="string" || !allowed.has(item.id) || typeof item.title!=="string")return [];
+      const org=item.organization && typeof item.organization==="object" ? item.organization as Record<string,unknown> : null;
+      return [{id:item.id,title:item.title,description:typeof item.description==="string"?item.description:"",
+        steps:[],duration:typeof item.durationMinutes==="number"?item.durationMinutes+" мин":"",
+        adult:true,organization:typeof org?.name==="string"?org.name:undefined,
+        municipality:typeof item.municipality==="string"?item.municipality:undefined,
+        cost:typeof item.cost==="string"?item.cost:undefined,
+        format:typeof item.format==="string"?item.format:undefined,
+        sourceUrl:typeof item.sourceUrl==="string" && /^https:\/\//.test(item.sourceUrl)?item.sourceUrl:undefined}];
     });
-    const normalized = interests.join(" ").toLowerCase();
-    const matches = ACTIVITIES.filter(item=>item.tags.some(tag=>normalized.includes(tag)));
-    // Fallback activities are explicitly general ideas, never attributed to the AI.
-    return matches.length ? matches : ACTIVITIES;
-  },[result,interests]);
-  const hasCatalogActivities = activityTitles(result?.activities).length>0;
+  },[result]);
+  const hasCatalogActivities = activities.length>0;
 
   useEffect(()=>{
     setHydrated(false);
@@ -94,11 +93,11 @@ export default function PrimaryExperience({result, grade, scope, notice, onResta
       <div><span className="primary-kicker">✓ Результаты диагностики</span><h1>Тебе интересно многое!</h1><p>{typeof result?.summary==="string"?result.summary:"Ты исследовал свои интересы. Теперь можно попробовать разные занятия и узнать о себе ещё больше."}</p>{notice&&<p className="primary-note">{notice}</p>}</div>
       <img src="/assets/mascots/leshii/leshii_checklist.png" alt="Леший с блокнотом" />
     </div><Guides message="Твои интересы — это подсказки, а не оценки. Можно попробовать разные занятия!" snow="snegurochka_idea_left" lesh="leshii_gesture"/><div className="primary-panel"><h2>♡ Твои интересы</h2>{interests.length?<div className="primary-interest-grid">{interests.map((item,i)=><article key={item} className="primary-interest-card"><span aria-hidden="true">{icons[i%icons.length]}</span><h3>{item}</h3><p>Это направление можно исследовать через занятия и игры.</p></article>)}</div>:<p>AI пока не выделил подтверждённые интересы. Можно выбрать занятие для свободного исследования — это не персональная рекомендация.</p>}</div><div className="primary-actions"><button className="primary-cta" onClick={()=>go("activities")}>Что можно попробовать →</button></div></>}
-    {stage==="activities"&&<><div className="primary-page-heading"><img src="/assets/mascots/leshii/leshii_map.png" alt="Леший с картой"/><div><span className="primary-kicker">Следующий шаг</span><h1>Выбери приключение!</h1><p>{hasCatalogActivities?"Здесь активности, полученные из каталога рекомендаций.":"Пока каталог не вернул персональные активности. Ниже — общие идеи для самостоятельного исследования, не AI-рекомендации."}</p></div></div>
-      <Guides message="Выбери то, что хочется попробовать. Можно взять несколько заданий!" snow="snegurochka_pointing" lesh="leshii_map"/><div className="primary-activity-grid">{activities.map((a,i)=><article key={a.id} className="primary-activity-card"><div className="primary-activity-art" aria-hidden="true">{icons[i%icons.length]}</div><h3>{a.title}</h3><p>{a.description}</p><div className="primary-activity-meta">{a.duration&&<span>◷ {a.duration}</span>}{a.adult&&<span>С участием взрослого</span>}</div><button type="button" className={selected.includes(a.id)?"primary-outline chosen":"primary-outline"} onClick={()=>toggle(a.id)}>{selected.includes(a.id)?"✓ В моём маршруте":"+ Добавить в маршрут"}</button></article>)}</div>
+    {stage==="activities"&&<><div className="primary-page-heading"><img src="/assets/mascots/leshii/leshii_map.png" alt="Леший с картой"/><div><span className="primary-kicker">Следующий шаг</span><h1>Выбери приключение!</h1><p>{hasCatalogActivities?"Здесь активности, полученные из каталога рекомендаций.":"Пока AI не подобрал подходящие занятия из каталога. Попробуй вернуться к вопросам или обсуди интересы со взрослым."}</p></div></div>
+      <Guides message="Выбери то, что хочется попробовать. Можно взять несколько заданий!" snow="snegurochka_pointing" lesh="leshii_map"/>{!activities.length&&<div className="primary-panel"><p>Подходящих занятий пока нет. Мы не будем придумывать рекомендации вместо каталога.</p></div>}<div className="primary-activity-grid">{activities.map((a,i)=><article key={a.id} className="primary-activity-card"><div className="primary-activity-art" aria-hidden="true">{icons[i%icons.length]}</div><h3>{a.title}</h3><p>{a.description}</p><div className="primary-activity-meta">{a.duration&&<span>◷ {a.duration}</span>}{a.municipality&&<span>{a.municipality}</span>}{a.cost&&<span>{a.cost}</span>}{a.organization&&<span>{a.organization}</span>}{a.adult&&<span>С участием взрослого</span>}</div>{a.sourceUrl&&<a href={a.sourceUrl} target="_blank" rel="noopener noreferrer">Подробнее у организатора ↗</a>}<button type="button" className={selected.includes(a.id)?"primary-outline chosen":"primary-outline"} onClick={()=>toggle(a.id)}>{selected.includes(a.id)?"✓ В моём маршруте":"+ Добавить в маршрут"}</button></article>)}</div>
       <div className="primary-actions"><button className="primary-outline" onClick={()=>go("interests")}>← Интересы</button><button className="primary-cta" disabled={!selected.length} onClick={()=>go("route")}>Мой маршрут ({selected.length}) →</button></div></>}
     {stage==="route"&&<><div className="primary-page-heading"><img src="/assets/mascots/snegurochka/snegurochka_sit_notebook.png" alt="Снегурочка с блокнотом"/><div><span className="primary-kicker">Мои открытия</span><h1>Мой маршрут</h1><p>Выбирай, что попробовать. Отмечай выполненное только после настоящего задания.</p></div></div>
-      <Guides message="Задания можно выполнять в своём темпе. Попроси взрослого помочь, если понадобится!" snow="snegurochka_sit_notebook" lesh="leshii_checklist"/>{chosen.length?<div className="primary-route-list">{chosen.map((a,i)=><article key={a.id} className="primary-route-item"><div className="primary-route-number">{i+1}</div><div><h3>{a.title}</h3><p>{a.description}</p><button className="primary-text-button" onClick={()=>setExpanded(expanded===a.id?null:a.id)}>{expanded===a.id?"Скрыть шаги":"Как выполнить задание ↓"}</button>{expanded===a.id&&(a.steps.length?<ol>{a.steps.map(step=><li key={step}>{step}</li>)}</ol>:<p>Подробные шаги не предоставлены каталогом.</p>)}</div><label className="primary-done"><input type="checkbox" checked={completed.includes(a.id)} onChange={()=>toggleDone(a.id)}/> Выполнено</label></article>)}</div>:<div className="primary-panel"><p>В маршруте ещё нет заданий.</p><button className="primary-outline" onClick={()=>go("activities")}>Выбрать задание</button></div>}
+      <Guides message="Задания можно выполнять в своём темпе. Попроси взрослого помочь, если понадобится!" snow="snegurochka_sit_notebook" lesh="leshii_checklist"/>{chosen.length?<div className="primary-route-list">{chosen.map((a,i)=><article key={a.id} className="primary-route-item"><div className="primary-route-number">{i+1}</div><div><h3>{a.title}</h3><p>{a.description}</p><button className="primary-text-button" onClick={()=>setExpanded(expanded===a.id?null:a.id)}>{expanded===a.id?"Скрыть шаги":"Как выполнить задание ↓"}</button>{expanded===a.id&&(a.steps.length?<ol>{a.steps.map(step=><li key={step}>{step}</li>)}</ol>:<p>Подробные шаги не предоставлены каталогом. Открой ссылку организатора для условий участия.</p>)}</div><label className="primary-done"><input type="checkbox" checked={completed.includes(a.id)} onChange={()=>toggleDone(a.id)}/> Выполнено</label></article>)}</div>:<div className="primary-panel"><p>В маршруте ещё нет заданий.</p><button className="primary-outline" onClick={()=>go("activities")}>Выбрать задание</button></div>}
       <div className="primary-actions"><button className="primary-outline" onClick={()=>go("activities")}>← К заданиям</button><button className="primary-cta" onClick={()=>go("reflection")}>Заполнить дневник →</button></div></>}
     {stage==="reflection"&&<><div className="primary-page-heading"><img src="/assets/mascots/leshii/leshii_thinking.png" alt="Леший размышляет"/><div><span className="primary-kicker">Последний этап</span><h1>Дневник открытий</h1><p>Расскажи, как прошло путешествие. Здесь нет неправильных ответов!</p></div></div>
       <Guides message="Расскажи, что тебе понравилось. Любой ответ подходит!" snow="snegurochka_thinking" lesh="leshii_thinking"/><div className="primary-panel primary-reflection"><h2>Как тебе путешествие?</h2><div className="primary-choice-row">{([["useful","😍","Очень понравилось"],["unsure","🙂","Было интересно"],["not_useful","😐","Не очень понравилось"]] as const).map(([id,emoji,label])=><button key={id} className={reflection.feeling===id?"selected":""} onClick={()=>setReflection(v=>({...v,feeling:id}))}><span>{emoji}</span>{label}</button>)}</div>
