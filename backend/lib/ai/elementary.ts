@@ -68,8 +68,16 @@ export function buildElementaryTargets(dossier:Dossier,catalog:NormalizedCatalog
      const trial=byId.get(id);
      if(!trial || !isTrialEligibleForGrade({...trial,trial_type:trial.trial_type??null},dossier.student.grade))return false;
      const format=(trial.format??"").toLowerCase();
-     if(/онлайн|online|дистанц/.test(format))return true;
-     return dossier.student.in_region && (trial.municipality??"").trim().toLowerCase()==="екатеринбург";
+     const online=/онлайн|online|дистанц/.test(format);
+     const offline=/очно|офлайн|offline|смешан/.test(format);
+     const preferredFormat=dossier.constraints.format;
+     if(preferredFormat==="online" && !online)return false;
+     if(preferredFormat==="offline" && !offline)return false;
+     if(dossier.constraints.free_only===true && !/бесплат|free|^0(?:[,.]0+)?$/i.test(trial.cost??""))return false;
+     if(dossier.constraints.time_limit===true && (typeof trial.duration_minutes!=="number" || trial.duration_minutes>180))return false;
+     const sameCity=dossier.student.in_region && (trial.municipality??"").trim().toLowerCase()==="екатеринбург";
+     if(dossier.constraints.place==="near_home" && !sameCity)return false;
+     return online || sameCity;
    }).slice(0,3);
    if(!activity_ids.length)warnings.add("activity_mapping_missing");
    return [{industry_id:industryId,tag,evidence_refs:refs.slice(0,3),activity_ids}];
