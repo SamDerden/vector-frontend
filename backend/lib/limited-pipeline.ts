@@ -13,7 +13,7 @@ export async function limitedPipeline(input: SofiPipelineInput) {
       if (result.rows[0]?.acquired) { slot = i; break; }
     }
     if (slot === null) throw new CapacityError(30);
-    await consumeLimit((sql, params) => client.query(sql, params), 'ai:global:day', 86400, 200);
+    await consumeLimit((sql, params) => client.query(sql, params), 'ai:global:day', 86400, 500);
     return await runSofiPipeline(input);
   } finally {
     try { if (slot !== null) await client.query('SELECT pg_advisory_unlock(714112, $1)', [slot]); }
