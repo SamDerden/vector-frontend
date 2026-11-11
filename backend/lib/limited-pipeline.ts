@@ -8,7 +8,7 @@ export async function limitedPipeline(input: SofiPipelineInput) {
   const client = await pool.connect();
   let slot: number | null = null;
   try {
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 20; i++) {
       const result = await client.query('SELECT pg_try_advisory_lock(714112, $1) AS acquired', [i]);
       if (result.rows[0]?.acquired) { slot = i; break; }
     }
