@@ -21,7 +21,7 @@ test("valid proof is scoped to exactly one session", () => {
   const proof = issueSessionProof(own, env);
   assert.equal(verifySessionProof(own, proof, env), true);
   assert.equal(verifySessionProof(other, proof, env), false);
-  assert.equal(verifySessionProof(own, proof.slice(0, -1) + (proof.endsWith("A") ? "B" : "A"), env), false);
+  assert.equal(verifySessionProof(own, proof.slice(0, 4) + (proof[4] === "A" ? "B" : "A") + proof.slice(5), env), false);
 });
 
 test("each demo session has an independent HttpOnly cookie", () => {
