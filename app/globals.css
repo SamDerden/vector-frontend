@@ -843,3 +843,43 @@
 @media(min-width:1801px){
  .nav-inner,main,.workspace,.demo-workspace,footer{max-width:1800px}
 }
+
+/* Unified responsive layout foundation — fluid spacing across phone, tablet and desktop.
+   Component grids reflow by available width rather than fixed device presets. */
+:root{
+ --vector-fluid-gutter:clamp(14px,2.6vw,52px);
+ --vector-fluid-gap:clamp(12px,1.5vw,26px);
+ --vector-fluid-card-padding:clamp(16px,2vw,32px);
+}
+.workspace,.demo-workspace,.vector-trial-screen,.vector-opportunities,
+.vector-journey,.demo-quiz-screen,.work-card{min-width:0;box-sizing:border-box}
+.vector-profession-story-card,.vector-journey-panel,.vector-opportunity-card,
+.vector-alternatives-list>*{min-width:0;overflow-wrap:anywhere}
+.vector-opportunity-card .pill,.vector-journey-stage-detail .pill{white-space:normal}
+@media(min-width:761px) and (max-width:1100px){
+ .nav-inner,main,.workspace,.demo-workspace,footer{box-sizing:border-box;width:100%;max-width:100%;margin-inline:auto}
+ .workspace,.demo-workspace{padding-inline:var(--vector-fluid-gutter)}
+ .work-card{padding:var(--vector-fluid-card-padding)}
+ .demo-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .illustrated-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-profession-story{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-opportunities-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-journey-grid{grid-template-columns:minmax(210px,28%) minmax(0,1fr);gap:var(--vector-fluid-gap)}
+ .vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-journey-recommendations{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vector-profession-hero.vector-trial-hero{min-height:0;padding:20px;gap:20px}
+ .vector-profession-hero .vector-trial-leshii{width:24%;max-height:175px}
+}
+@media(min-width:641px) and (max-width:760px){
+ .workspace,.demo-workspace{box-sizing:border-box;width:100%;padding-inline:clamp(14px,3vw,24px)}
+ .work-card{padding:clamp(18px,3vw,26px)}
+ .vector-profession-story,.vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-opportunities-grid,.illustrated-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vector-journey-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:640px){
+ .workspace,.demo-workspace{width:100%;max-width:100%;box-sizing:border-box}
+ .illustrated-options,.vector-profession-story,.vector-journey-grid,.vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-opportunities-grid{grid-template-columns:minmax(0,1fr)}
+ .work-card,.demo-quiz-screen,.vector-trial-screen,.vector-opportunities,.vector-journey{border-radius:clamp(16px,4vw,24px)}
+}
