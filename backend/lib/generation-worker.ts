@@ -86,6 +86,7 @@ export type WorkerDeps = GenerateDeps & {
   workerId?: string;
   renewEveryMs?: number;
   idleMs?: number;
+  concurrency?: number;
   generate?: (input: {
     job: GenerationJob;
     snapshot: GenerationInputSnapshot;
@@ -269,7 +270,7 @@ export function startGenerationWorker(deps: WorkerDeps): () => Promise<void> {
   const abort = new AbortController();
   // Claim distinct jobs with SKIP LOCKED. The advisory locks in limitedPipeline
   // remain the global ceiling across API requests and worker replicas.
-  const concurrency = 20;
+  const concurrency = Math.max(1, Math.min(20, Math.floor(deps.concurrency ?? 20)));
   const loops = Array.from({ length: concurrency }, (_, index) => (async () => {
     const workerDeps = { ...deps, workerId: `${deps.workerId ?? "generation"}-${index}` };
     while (!abort.signal.aborted) {
