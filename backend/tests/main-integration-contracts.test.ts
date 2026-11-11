@@ -62,7 +62,7 @@ test("generate and track use database budgets without stacking the in-process gu
   const generate = source("../app/api/recommendations/generate/route.ts");
   const track = source("../app/api/track/select/route.ts");
   const diagnostic = source("../app/api/diagnostic/submit/route.ts");
-  assert.match(generate, /consumeLimit\(query, "generate:global", 60, 30\)/);
+  assert.match(generate, /consumeLimit\(query, "generate:global", 60, 120\)/);
   assert.match(generate, /consumeLimit\(query, "generate:session:"/);
   assert.match(generate, /pipeline: limitedPipeline/);
   assert.doesNotMatch(generate, /abuseGuard/);
