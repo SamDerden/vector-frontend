@@ -44,7 +44,7 @@ export async function requireExistingSession(request: NextRequest) {
   const denied = authorizeSessionOwnership(request, header.sessionId);
   if (denied) return { error: denied };
 
-  const session = await query("SELECT id FROM sessions WHERE id = $1", [
+  const session = await query("SELECT id FROM sessions WHERE id = $1 AND (expires_at IS NULL OR expires_at > now())", [
     header.sessionId,
   ]);
 
