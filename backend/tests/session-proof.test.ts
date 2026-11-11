@@ -35,3 +35,12 @@ test("each demo session has an independent HttpOnly cookie", () => {
 test("issuance fails closed without a configured server secret", () => {
   assert.throws(() => issueSessionProof(own, {} as NodeJS.ProcessEnv), /SESSION_PROOF_SECRET/);
 });
+
+test("demo proof is a browser-session cookie; own proof persists for seven days", () => {
+  const demo = sessionProofCookieOptions(true, "demo");
+  const ownCookie = sessionProofCookieOptions(true, "own");
+  assert.equal("maxAge" in demo, false);
+  assert.equal(ownCookie.maxAge, 7 * 24 * 60 * 60);
+  assert.equal(demo.httpOnly, true);
+  assert.equal(demo.secure, true);
+});
