@@ -21,17 +21,22 @@ function installBrowser(responses){
     getItem:(key)=>values.get(key)??null,
     setItem:(key,value)=>{values.set(key,value);},
   };
+  const sessionValues=new Map();
+  const tabStorage={
+    getItem:(key)=>sessionValues.get(key)??null,
+    setItem:(key,value)=>{sessionValues.set(key,value);},
+  };
   const previousWindow=globalThis.window;
   const previousFetch=globalThis.fetch;
   const calls=[];
-  Object.defineProperty(globalThis,"window",{value:{localStorage:storage},configurable:true});
+  Object.defineProperty(globalThis,"window",{value:{localStorage:storage,sessionStorage:tabStorage},configurable:true});
   globalThis.fetch=async(url,init)=>{
     calls.push({url:String(url),init});
     const path=String(url);
     const response=responseFor(path,responses.handler);
     return new Response(response.body,{status:response.status,headers:{"Content-Type":response.type??"application/json"}});
   };
-  return {storage,calls,restore(){
+  return {storage,tabStorage,calls,restore(){
     if(previousWindow===undefined)delete globalThis.window;
     else Object.defineProperty(globalThis,"window",{value:previousWindow,configurable:true});
     globalThis.fetch=previousFetch;
@@ -68,11 +73,12 @@ test("profile interests and all six answers are sent to diagnostic",async()=>{
     const track=browser.calls.find((call)=>call.url.endsWith("/api/track/select"));
     const diagnostic=browser.calls.find((call)=>call.url.endsWith("/api/diagnostic/submit"));
     const clarify=browser.calls.find((call)=>call.url.endsWith("/api/clarification/submit"));
-    assert.deepEqual(JSON.parse(track.init.body),{trackType:"explore",schoolGrade:2});
+    assert.deepEqual(JSON.parse(track.init.body),{trackType:"explore",schoolGrade:2,demoStudentId:2});
     assert.deepEqual(JSON.parse(diagnostic.init.body),{answers:[{questionId:"interest",answer:"животные"},{questionId:"q2",answer:false}]});
     assert.deepEqual(JSON.parse(clarify.init.body),{answers:clarification});
     assert.equal(browser.storage.getItem("X-Session-ID"),null);
-    assert.match(browser.storage.getItem("vector-session-demo-2"),/^[0-9a-f-]{36}$/i);
+    assert.equal(browser.storage.getItem("vector-session-demo-2"),null);
+    assert.match(browser.tabStorage.getItem("vector-session-demo-2"),/^[0-9a-f-]{36}$/i);
   }finally{browser.restore()}
 });
 test("AI recommendations are requested after diagnostic",()=>assert.match(source,/api\/recommendations\/generate/));
