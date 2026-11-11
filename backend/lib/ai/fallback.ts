@@ -1,7 +1,7 @@
 import agePolicy from "@/config/age_policy.json" with { type: "json" };
-import { Dossier } from "./dossier";
-import { PostprocessContext, postprocess } from "./postprocess";
-import { RetrievalResult } from "./retrieval";
+import type { Dossier } from "./dossier";
+import { postprocess, type PostprocessContext } from "./postprocess";
+import type { RetrievalResult } from "./retrieval";
 
 export interface FallbackOptions {
   dossier: Dossier;
