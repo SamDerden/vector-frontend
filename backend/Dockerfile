@@ -20,6 +20,9 @@ COPY --from=builder /app/prompts ./prompts
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/app ./app
 COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/config ./config
+COPY --from=builder /app/tests/register-app-alias.mjs ./tests/register-app-alias.mjs
+COPY --from=builder /app/tests/resolve-app-alias.mjs ./tests/resolve-app-alias.mjs
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts ./scripts
 EXPOSE 3000
