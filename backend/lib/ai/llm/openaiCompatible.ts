@@ -83,6 +83,7 @@ export class OpenAICompatibleClient implements LLMClient {
         ? 0
         : Math.min(opts.timeoutMs, llmConfig.attempt_timeout_ms, remainingBudget);
 
+      const attemptStartedAt = Date.now();
       try {
         const requestBody: {
           model: string;
@@ -121,6 +122,7 @@ export class OpenAICompatibleClient implements LLMClient {
           throw new Error("LLM returned an unexpected response shape");
         }
 
+        console.info("[AI gateway] chat completion", JSON.stringify({ outcome: "success", attempt, attemptMs: Date.now() - attemptStartedAt, totalMs: Date.now() - startedAt, status: response.status }));
         recordSuccess();
         const reportedCost = Number(response.headers?.["x-litellm-response-cost"]);
         return {
@@ -134,6 +136,7 @@ export class OpenAICompatibleClient implements LLMClient {
       } catch (error) {
         lastError = error;
         const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        console.warn("[AI gateway] chat completion", JSON.stringify({ outcome: "failed", attempt, attemptMs: Date.now() - attemptStartedAt, totalMs: Date.now() - startedAt, timeoutMs: currentTimeout, status: status ?? null, code: axios.isAxiosError(error) ? error.code ?? null : error instanceof Error ? error.name : "unknown" }));
 
         if (status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429) {
           recordFailure();
