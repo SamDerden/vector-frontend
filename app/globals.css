@@ -757,3 +757,47 @@
  .vector-journey-stage-list button{gap:9px;padding:11px}
  .vector-journey-stage-list button b{font-size:11px;max-width:90px;text-align:right}
 }
+
+/* Responsive audit 2026-11-11: consistent phone sizing across all journeys.
+   Scoped to small screens to preserve desktop layout. */
+@media(max-width:640px){
+ html,body{max-width:100%;overflow-x:clip}
+ main,.nav-inner,.demo-workspace,.work-card,.diagnostic-panel,.demo-quiz-screen,
+ .vector-trial-screen,.vector-opportunities,.vector-journey,.vector-profession-story,
+ .vector-analysis-screen,.primary-adventure{box-sizing:border-box;max-width:100%;min-width:0}
+ .work-card,.diagnostic-panel,.vector-journey-panel,.vector-profession-story-card,
+ .vector-opportunity-card,.vector-profile-review,.vector-alternatives{padding:clamp(14px,4vw,20px)}
+ .work-card h1,.demo-quiz-screen h1,.vector-trial-screen h1,.vector-opportunities h1,
+ .vector-journey h1{font-size:clamp(23px,6vw,31px);line-height:1.16;overflow-wrap:break-word}
+ .work-card h2,.demo-quiz-screen h2,.vector-profession-story h2,
+ .vector-journey h2{font-size:clamp(19px,5.2vw,25px);line-height:1.23;overflow-wrap:break-word}
+ .work-card p,.demo-quiz-screen p,.vector-profession-story p,.vector-opportunities p,
+ .vector-journey p{overflow-wrap:anywhere}
+ .work-card img,.demo-quiz-screen img,.vector-trial-screen img,.vector-opportunities img,
+ .vector-journey img{max-width:100%;object-fit:contain}
+ .option-list .option,.diagnostic-panel .option,.illustrated-option{box-sizing:border-box;max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+ .demo-quiz-heading,.vector-flow-nav{min-width:0;gap:10px}
+ .vector-flow-nav{flex-wrap:wrap}
+ .vector-flow-nav .pill{max-width:100%;white-space:normal}
+ .vector-opportunities-hero{min-height:0;padding:16px;gap:12px}
+ .vector-opportunities-hero img{flex:0 0 30%;width:30%;height:110px;object-fit:contain}
+ .vector-opportunities-hero>div{flex:1;min-width:0}
+ .vector-opportunities-hero h1{font-size:clamp(22px,5.5vw,28px)}
+ .vector-journey-stage-list button{min-width:0;width:100%}
+ .vector-journey-stage-list button>div{min-width:0}
+ .vector-journey-stage-list button b{white-space:normal;overflow-wrap:anywhere}
+ .vector-journey-stage-detail{flex-wrap:wrap}
+ .vector-journey-stage-detail .pill{max-width:100%;white-space:normal}
+ .vector-profession-story{grid-template-columns:minmax(0,1fr)}
+ .vector-profession-story-card{min-width:0}
+ .vector-profession-hero.vector-trial-hero{min-height:0}
+ .vector-profession-hero .vector-trial-leshii{max-width:42%;height:auto;max-height:170px}
+ .vector-journey-recommendations,.vector-opportunities-grid,.vector-alternatives-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:390px){
+ .vector-journey-stage-list button{gap:8px;padding:10px}
+ .vector-journey-stage-list button>span{flex-basis:30px;height:30px}
+ .vector-journey-stage-list button b{font-size:10px;max-width:75px}
+ .vector-opportunities-hero img{height:92px}
+ .vector-profession-hero .vector-trial-leshii{max-height:145px}
+}
