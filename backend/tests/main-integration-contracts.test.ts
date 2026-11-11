@@ -3,12 +3,22 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { getFromCache, setCache, setCacheClock, shouldCachePipelineResult } from "../lib/ai/cache.ts";
-import { isTransportFailure } from "../lib/generation-jobs.ts";
+import { generationBudgetApplies, isTransportFailure } from "../lib/generation-jobs.ts";
 import { sessionProofEnforced } from "../lib/session-proof.ts";
 
 function source(relativePath: string): string {
   return readFileSync(new URL(relativePath, import.meta.url), "utf8");
 }
+
+test("a stored generation does not spend another request budget", () => {
+  assert.equal(generationBudgetApplies(null), true);
+  assert.equal(generationBudgetApplies("failed"), true);
+  assert.equal(generationBudgetApplies("completed"), false);
+  assert.equal(generationBudgetApplies("pending"), false);
+  assert.equal(generationBudgetApplies("running"), false);
+  assert.match(source("../app/api/recommendations/generate/route.ts"), /generationBudgetApplies\(existingJob\?\.status\)/);
+  assert.match(source("../app/api/recommendations/generate/route.ts"), /if \(idempotency\.key\)/);
+});
 
 test("ownership stays off outside production unless the explicit flag is set", () => {
   assert.equal(sessionProofEnforced({ NODE_ENV: "development" } as NodeJS.ProcessEnv), false);

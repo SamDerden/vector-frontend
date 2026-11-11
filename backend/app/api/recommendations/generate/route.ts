@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isMissingSchemaError, pool, query } from "@/lib/db";
-import { parseIdempotencyKey } from "@/lib/generation-jobs";
+import { generationBudgetApplies, parseIdempotencyKey, readGenerationJob } from "@/lib/generation-jobs";
 import { handleError, jsonError } from "@/lib/http";
 import { countMetric, logEvent } from "@/lib/observe";
 import { executeGenerate } from "@/lib/sofi-generate";
@@ -23,8 +23,15 @@ export async function POST(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
-    await consumeLimit(query, "generate:global", 60, 30);
-    await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
+    let spendBudget = true;
+    if (idempotency.key) {
+      const existingJob = await readGenerationJob(query, session.sessionId, idempotency.key);
+      spendBudget = generationBudgetApplies(existingJob?.status);
+    }
+    if (spendBudget) {
+      await consumeLimit(query, "generate:global", 60, 30);
+      await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
+    }
     let rawBody: unknown = {};
     try {
       const rawText = await request.text();

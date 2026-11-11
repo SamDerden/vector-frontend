@@ -334,6 +334,10 @@ export function isTransportFailure(error: unknown): boolean {
   return code === "ECONNABORTED" || code === "ETIMEDOUT" || code === "ECONNRESET" || name === "AbortError" || name === "TimeoutError";
 }
 
+export function generationBudgetApplies(status: string | null | undefined): boolean {
+  return status == null || status === "failed";
+}
+
 export async function readGenerationJob(
   query: DbQuery,
   sessionId: string,

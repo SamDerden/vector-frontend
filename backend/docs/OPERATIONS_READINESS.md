@@ -2,6 +2,28 @@
 
 Проверки ниже для администратора стенда. Этот набор изменений не трогал Railway, переменные окружения сервера и боевую базу. Код ownership в production берётся из main: проверка включена, когда `NODE_ENV=production`, даже без `SESSION_PROOF_ENFORCED`. На сервер это не выкатывалось.
 
+## Инцидент: генерация не сохраняется
+
+Один `GET /api/health`. Снять `revision`, `database`, `sessionOwnership`, `generationWorker`, `aiConfigured`. Генерацию не вызывать.
+
+В логах за час посчитать `generation_result` по `httpStatus` и `errorCode`. Искать строку `recommendation persist failed` и `Session ownership is not configured`. Тела ответов и ответы учеников не читать.
+
+Read-only SQL, без персональных колонок:
+
+`SELECT status, count(*) FROM generation_jobs WHERE updated_at > now() - interval '1 hour' GROUP BY status;`
+
+`SELECT key, used FROM request_budgets WHERE key IN ('generate:global', 'ai:global:day');`
+
+`SELECT filename FROM schema_migrations ORDER BY filename;`
+
+Пока эти три показателя не сняты, публичный `502` не считается подтверждённым.
+
+## Включение ownership
+
+Код включает проверку при `NODE_ENV=production` даже без `SESSION_PROOF_ENFORCED`. Перед выкладкой: секрет длиннее 32 байт, браузер ходит на тот же origin, у текущих сессий есть cookie, старые сессии с пустым `expires_at` не удалять. Флаг отдельно не включать, пока этот список не закрыт.
+
+Первый адрес в `X-Forwarded-For` влияет на отдельный in-memory лимит. Клиент может его подменить. Это не граница доверенного прокси и не признак готовности production.
+
 ## Health
 
 `GET /api/health` без сессии. `200` и `database: "connected"` значат, что выполнен `SELECT 1`. `503` значит, что база недоступна. `aiConfigured` смотрит только на наличие `AI_API_BASE_URL`, `AI_API_KEY` и `AI_MODEL`. `embeddingsConfigured` смотрит только на наличие `LLM_EMBEDDINGS_MODEL`. Ни то ни другое не вызывает шлюз.
@@ -36,7 +58,7 @@ API сам worker не запускает. Для дожима задач пос
 
 ## Резервная копия
 
-Перед миграцией 009, 010 или 011 снять дамп только стенда. Восстановление — в пустую базу стенда, затем `npm run db:migrate`. Рабочую базу этим пакетом не мигрировать и не чистить. Миграции 006–011 отсюда не применялись.
+Перед миграцией 009, 010 или 011 на рабочей базе снять дамп. Восстановление плана — в пустую базу, затем `npm run db:migrate`. Рабочую базу этим пакетом не мигрировать и не чистить. Миграции 001–011 применялись только на изолированном стенде `127.0.0.1:55432`.
 
 ## Откат
 

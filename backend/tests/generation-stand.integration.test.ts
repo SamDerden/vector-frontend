@@ -25,7 +25,7 @@ import { issueSessionProof, sessionProofCookieName } from "../lib/session-proof.
 import { SCHOOL_SAFE_LIMITS, clientKeyFromHeaders, createAbuseGuard } from "../lib/abuse-guard.ts";
 import { redact } from "../lib/observe.ts";
 import { sessionCleanupPlan } from "../lib/session-cleanup.ts";
-import { KEYED_RECOMMENDATION_INSERT_SQL } from "../lib/sofi-generate.ts";
+import { executeGenerate, KEYED_RECOMMENDATION_INSERT_SQL } from "../lib/sofi-generate.ts";
 import {
   WORKER_ATTACH_SQL,
   WORKER_CLAIM_SQL,
@@ -846,6 +846,193 @@ test("health, cleanup dry-run, NAT limit, redaction and five local readers", asy
     );
     assert.ok(activity.rows[0].n >= 1);
     console.log(JSON.stringify({ localLoad: { users: 5, elapsedMs, connections: activity.rows[0].n } }));
+  } finally {
+    await pool.end();
+  }
+});
+
+test("a real database client commits one keyed recommendation and replays it", async () => {
+  const { default: pg } = await import("pg");
+  const pool = new pg.Pool({ connectionString: standUrl, max: 10 });
+  await applyStandMigrations(pool);
+  await pool.query("DELETE FROM sessions WHERE id::text LIKE '00000000-0000-4000-8000-%'");
+  const sessionId = id("000000000721");
+  const requestId = id("000000000722");
+  let pipelineCalls = 0;
+  const deps = {
+    query: (sql, params) => pool.query(sql, params),
+    connect: () => pool.connect(),
+    pipeline: async () => {
+      pipelineCalls += 1;
+      return {
+        summary: "Синтетическая рекомендация стенда",
+        next_step: "Посмотри каталог стенда",
+        hypotheses: [],
+        warnings: [],
+        generation: { mode: "retrieval_only", tier: "5-8", promptVersion: null, catalogVersion: "stand", configVersion: "stand", attempts: 0 },
+      };
+    },
+    modelName: "stub",
+  };
+  try {
+    await session(pool, sessionId);
+    await pool.query(
+      "INSERT INTO profiles (session_id, school_grade, municipality) VALUES ($1, 7, 'Стенд')",
+      [sessionId]
+    );
+    const diagnostic = await pool.query("INSERT INTO diagnostics (session_id) VALUES ($1) RETURNING id", [sessionId]);
+    await pool.query(
+      "INSERT INTO diagnostic_answers (diagnostic_id, question_id, answer, questionnaire) VALUES ($1, 'q-stand', '\"synthetic\"'::jsonb, 'stand')",
+      [diagnostic.rows[0].id]
+    );
+    const first = await executeGenerate({ sessionId, body: {}, idempotencyKey: requestId, deps });
+    assert.equal(first.ok, true);
+    if (first.ok) {
+      assert.equal(first.status, 201);
+      assert.equal(first.body.model, "retrieval_only");
+    }
+    const stored = await pool.query(
+      "SELECT count(*)::int AS n FROM recommendations WHERE session_id = $1",
+      [sessionId]
+    );
+    assert.equal(stored.rows[0].n, 1);
+    const replay = await executeGenerate({ sessionId, body: {}, idempotencyKey: requestId, deps });
+    assert.equal(replay.ok, true);
+    if (replay.ok) assert.equal(replay.status, 201);
+    if (first.ok && replay.ok) assert.equal(replay.body.recommendationId, first.body.recommendationId);
+    assert.equal(pipelineCalls, 1);
+    const job = await pool.query(
+      "SELECT status, error_code FROM generation_jobs WHERE session_id = $1 AND client_request_id = $2",
+      [sessionId, requestId]
+    );
+    assert.equal(job.rows[0].status, "completed");
+    assert.equal(job.rows[0].error_code, null);
+
+    const abortSession = id("000000000723");
+    const abortRequest = id("000000000724");
+    await session(pool, abortSession);
+    await pool.query(
+      "INSERT INTO profiles (session_id, school_grade, municipality) VALUES ($1, 10, 'Стенд')",
+      [abortSession]
+    );
+    const abortDiagnostic = await pool.query("INSERT INTO diagnostics (session_id) VALUES ($1) RETURNING id", [abortSession]);
+    await pool.query(
+      "INSERT INTO diagnostic_answers (diagnostic_id, question_id, answer, questionnaire) VALUES ($1, 'q-stand', '\"synthetic\"'::jsonb, 'stand')",
+      [abortDiagnostic.rows[0].id]
+    );
+    let abortCalls = 0;
+    const abort = Object.assign(new Error("stub transport"), { code: "ECONNABORTED" });
+    const aborted = await executeGenerate({
+      sessionId: abortSession,
+      body: {},
+      idempotencyKey: abortRequest,
+      deps: {
+        ...deps,
+        pipeline: async () => {
+          abortCalls += 1;
+          throw abort;
+        },
+      },
+    });
+    assert.equal(aborted.ok, false);
+    if (!aborted.ok) {
+      assert.equal(aborted.status, 502);
+      assert.equal(aborted.details && aborted.details.errorCode, "pipeline_failed");
+    }
+    const abortReplay = await executeGenerate({
+      sessionId: abortSession,
+      body: {},
+      idempotencyKey: abortRequest,
+      deps: {
+        ...deps,
+        pipeline: async () => {
+          abortCalls += 1;
+          throw abort;
+        },
+      },
+    });
+    assert.equal(abortReplay.ok, false);
+    assert.equal(abortCalls, 1);
+    const abortRows = await pool.query(
+      "SELECT count(*)::int AS n FROM recommendations WHERE session_id = $1",
+      [abortSession]
+    );
+    assert.equal(abortRows.rows[0].n, 0);
+
+    const persistSession = id("000000000725");
+    const persistRequest = id("000000000726");
+    await session(pool, persistSession);
+    await pool.query(
+      "INSERT INTO profiles (session_id, school_grade, municipality) VALUES ($1, 8, 'Стенд')",
+      [persistSession]
+    );
+    const persistDiagnostic = await pool.query("INSERT INTO diagnostics (session_id) VALUES ($1) RETURNING id", [persistSession]);
+    await pool.query(
+      "INSERT INTO diagnostic_answers (diagnostic_id, question_id, answer, questionnaire) VALUES ($1, 'q-stand', '\"synthetic\"'::jsonb, 'stand')",
+      [persistDiagnostic.rows[0].id]
+    );
+    const persisted = await executeGenerate({
+      sessionId: persistSession,
+      body: {},
+      idempotencyKey: persistRequest,
+      deps: {
+        ...deps,
+        connect: async () => {
+          const client = await pool.connect();
+          return {
+            query(sql, params) {
+              if (String(sql).includes("INSERT INTO recommendations")) throw new Error("injected persist failure");
+              return client.query(sql, params);
+            },
+            release: () => client.release(),
+          };
+        },
+      },
+    });
+    assert.equal(persisted.ok, false);
+    if (!persisted.ok) assert.equal(persisted.details && persisted.details.errorCode, "persist_failed");
+    const persistRows = await pool.query(
+      "SELECT count(*)::int AS n FROM recommendations WHERE session_id = $1",
+      [persistSession]
+    );
+    assert.equal(persistRows.rows[0].n, 0);
+
+    const fixtures = JSON.parse(readFileSync(new URL("../data/mock_students_data.json", import.meta.url), "utf8"));
+    assert.equal(fixtures.length, 15);
+    const grades = [...new Set(fixtures.map((item) => item.grade))].sort((a, b) => a - b);
+    assert.deepEqual(grades, [2, 4, 6, 7, 8, 9, 10, 11]);
+    const older = fixtures.filter((item) => item.grade >= 5);
+    assert.equal(older.length, 13);
+    const started = Date.now();
+    await Promise.all(older.slice(0, 5).map(async (item, index) => {
+      const fixtureSession = id(String(1000 + item.student_id).padStart(12, "0"));
+      const fixtureRequest = id(String(2000 + item.student_id).padStart(12, "0"));
+      await session(pool, fixtureSession);
+      await pool.query(
+        "INSERT INTO profiles (session_id, school_grade, municipality) VALUES ($1, $2, 'Стенд')",
+        [fixtureSession, item.grade]
+      );
+      const row = await pool.query("INSERT INTO diagnostics (session_id) VALUES ($1) RETURNING id", [fixtureSession]);
+      await pool.query(
+        "INSERT INTO diagnostic_answers (diagnostic_id, question_id, answer, questionnaire) VALUES ($1, 'q-stand', '\"synthetic\"'::jsonb, 'stand')",
+        [row.rows[0].id]
+      );
+      const outcome = await executeGenerate({
+        sessionId: fixtureSession,
+        body: {},
+        idempotencyKey: fixtureRequest,
+        deps: { ...deps, pipeline: async () => deps.pipeline() },
+      });
+      assert.equal(outcome.ok, true, "fixture " + index);
+      const count = await pool.query(
+        "SELECT count(*)::int AS n FROM recommendations WHERE session_id = $1",
+        [fixtureSession]
+      );
+      assert.equal(count.rows[0].n, 1);
+    }));
+    console.log(JSON.stringify({
+      fixtureLoad: { profiles: 5, grades: "5-11", elapsedMs: Date.now() - started, catalogFixtures: fixtures.length },
+    }));
   } finally {
     await pool.end();
   }

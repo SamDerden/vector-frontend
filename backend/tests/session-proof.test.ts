@@ -39,7 +39,8 @@ test("missing, forged and stale proofs are rejected", () => {
   assert.equal(forged.length, proof.length);
   assert.equal(verifySessionProof(SESSION, forged, env), false);
   assert.equal(verifySessionProof(SESSION, `v0.${nonce}.${mac}`, env), false);
-  assert.equal(verifySessionProof(SESSION, `${version}.${nonce}.${mac.slice(0, -1)}b`, env), false);
+  const flipped = mac[0] === "A" ? "B" : "A";
+  assert.equal(verifySessionProof(SESSION, `${version}.${nonce}.${flipped}${mac.slice(1)}`, env), false);
 });
 
 test("proof enforcement follows production or the explicit flag", () => {
