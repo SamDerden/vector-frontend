@@ -7,7 +7,7 @@ import ragConfig from "@/config/rag.config.json";
 import validationPatterns from "@/config/validation_patterns.json";
 import promptManifest from "@/prompts/manifest.json";
 import { estimateAgeFromGrade, isTrialEligibleForGrade } from "@/lib/ai/age";
-import { getFromCache, makeCacheKey, setCache } from "@/lib/ai/cache";
+import { getFromCache, makeCacheKey, setCache, shouldCachePipelineResult } from "@/lib/ai/cache";
 import { type NormalizedCatalog, type NormalizedProfession } from "@/lib/ai/catalog";
 import { buildDossier } from "@/lib/ai/dossier";
 import { buildFallbackResponse } from "@/lib/ai/fallback";
@@ -55,7 +55,7 @@ function emptyRetrieval(reason: string) {
     industryScores: {} as Record<string, number>,
     coverageGap: true,
     uncoveredAnswerRefs: [] as string[],
-    mode: "semantic" as const,
+    mode: "lexical" as const,
     warnings: [reason],
   };
 }
@@ -373,6 +373,8 @@ export async function runSofiPipeline(
     configVersion,
     attempts,
   };
-  setCache(cacheKey, result);
+  if (shouldCachePipelineResult({ generationMode: mode, retrievalMode: retrieval.mode })) {
+    setCache(cacheKey, result);
+  }
   return result;
 }

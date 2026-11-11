@@ -327,6 +327,13 @@ export function publicErrorCode(value: string): string {
   return ERROR_CODES.has(value) ? value : "pipeline_failed";
 }
 
+export function isTransportFailure(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = "code" in error ? String((error as { code: unknown }).code) : "";
+  const name = error instanceof Error ? error.name : "";
+  return code === "ECONNABORTED" || code === "ETIMEDOUT" || code === "ECONNRESET" || name === "AbortError" || name === "TimeoutError";
+}
+
 export async function readGenerationJob(
   query: DbQuery,
   sessionId: string,

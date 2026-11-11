@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, pool, query } from "@/lib/db";
-import { handleError, jsonError } from "@/lib/http";
 import { parseIdempotencyKey } from "@/lib/generation-jobs";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
+import { countMetric, logEvent } from "@/lib/observe";
 import { executeGenerate } from "@/lib/sofi-generate";
 import { runSofiPipeline } from "@/lib/sofi-pipeline";
 import { requireExistingSession } from "@/lib/session";
@@ -21,6 +23,13 @@ export async function POST(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
+    const limited = idempotency.key
+      ? await abuseGuard.guardGeneration(session.sessionId, idempotency.key)
+      : await abuseGuard.guardWrite(session.sessionId);
+    if (!limited.ok) {
+      countMetric("generation_rate_limited");
+      return rateLimited(limited.retryAfterMs);
+    }
 
     let rawBody: unknown = {};
     try {
@@ -33,6 +42,7 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    const started = Date.now();
     const outcome = await executeGenerate({
       sessionId: session.sessionId,
       body: rawBody,
@@ -45,9 +55,23 @@ export async function POST(request: NextRequest) {
       },
     });
     if (!outcome.ok) {
+      countMetric(`generation_${outcome.status}`);
+      logEvent("generation_result", {
+        requestId: idempotency.key,
+        httpStatus: outcome.status,
+        errorCode: outcome.details && typeof outcome.details === "object" && "errorCode" in outcome.details
+          ? (outcome.details as { errorCode?: unknown }).errorCode
+          : undefined,
+        durationMs: Date.now() - started,
+      });
       return jsonError(outcome.error, outcome.status, outcome.details);
     }
 
+    logEvent("generation_result", {
+      requestId: idempotency.key,
+      httpStatus: outcome.status,
+      durationMs: Date.now() - started,
+    });
     return NextResponse.json(outcome.body, { status: outcome.status });
   } catch (error) {
     if (isMissingSchemaError(error)) {

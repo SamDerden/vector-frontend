@@ -1,4 +1,11 @@
+import { isMissingSchemaError } from "./db.ts";
 import { trackSchema } from "./schemas.ts";
+import {
+  SESSION_CONFLICT_SQL,
+  SESSION_UPSERT_LEGACY_SQL,
+  SESSION_UPSERT_LIFETIME_SQL,
+  sessionLifetimeHours,
+} from "./session-lifetime.ts";
 
 export type DbQuery = (
   sql: string,
@@ -58,13 +65,33 @@ export async function executeTrackSelect(input: {
   }
 
   const { trackType, schoolGrade, confidenceBefore } = parsed.data;
-  await input.query(
-    `INSERT INTO sessions (id, track_type, created_at, updated_at)
-     VALUES ($1, $2, now(), now())
-     ON CONFLICT (id)
-     DO UPDATE SET track_type = EXCLUDED.track_type, updated_at = now()`,
-    [input.sessionId, trackType]
-  );
+  const demoStudentId = isRecord(input.body) ? input.body.demoStudentId : undefined;
+  if (
+    demoStudentId !== undefined &&
+    (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) || demoStudentId < 1 || demoStudentId > 15)
+  ) {
+    return { ok: false, status: 422, error: "Invalid demo student id" };
+  }
+  const sessionMode = demoStudentId === undefined ? "own" : "demo";
+  let inserted;
+  try {
+    inserted = await input.query(SESSION_UPSERT_LIFETIME_SQL, [
+      input.sessionId,
+      trackType,
+      sessionMode,
+      sessionLifetimeHours(sessionMode),
+    ]);
+  } catch (error) {
+    if (!isMissingSchemaError(error)) throw error;
+    inserted = await input.query(SESSION_UPSERT_LEGACY_SQL, [input.sessionId, trackType]);
+  }
+  if ((inserted.rowCount ?? 0) === 0) {
+    const current = await input.query(SESSION_CONFLICT_SQL, [input.sessionId]);
+    if (current.rows[0]?.expired === true) {
+      return { ok: false, status: 410, error: "Session expired. Start a new session." };
+    }
+    return { ok: false, status: 409, error: "Session mode conflict. Start a new session." };
+  }
 
   if (schoolGrade === undefined && confidenceBefore === undefined) {
     return {

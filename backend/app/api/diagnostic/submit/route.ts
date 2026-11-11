@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import {
   saveClarificationAnswers,
   validateClarificationAnswers,
 } from "@/lib/clarification";
-import { isMissingSchemaError, pool, query } from "@/lib/db";
-import { handleError, jsonError } from "@/lib/http";
+import { isMissingSchemaError, pool } from "@/lib/db";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
 import { diagnosticSchema } from "@/lib/schemas";
-import { readSessionId } from "@/lib/session";
+import { authorizeSessionOwnership, loadLiveSession, readSessionId } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -29,20 +30,21 @@ export async function POST(request: NextRequest) {
 
     const { answers, clarificationAnswers } = parsed.data;
     const validSessionId = header.sessionId;
+    const denied = authorizeSessionOwnership(request, validSessionId);
+    if (denied) return denied;
+    const live = await loadLiveSession(validSessionId);
+    if ("error" in live && live.error) {
+      if (live.error.status === 404) return jsonError("Session not found. Select a track first.", 404);
+      return live.error;
+    }
+    const limited = await abuseGuard.guardWrite(validSessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
 
     if (clarificationAnswers) {
       const clarificationErrors = validateClarificationAnswers(clarificationAnswers);
       if (clarificationErrors.length > 0) {
         return jsonError("Invalid clarification answers", 422, clarificationErrors);
       }
-    }
-
-    const session = await query("SELECT id FROM sessions WHERE id = $1", [
-      validSessionId,
-    ]);
-
-    if (session.rowCount === 0) {
-      return jsonError("Session not found. Select a track first.", 404);
     }
 
     const client = await pool.connect();

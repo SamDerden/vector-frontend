@@ -101,6 +101,48 @@ test("invalid school grades are rejected without writing a profile", async () =>
   }
 });
 
+test("an expired session is not renewed and a mode conflict stays closed", async () => {
+  const expired = createDb();
+  expired.query = async (sql, params = []) => {
+    if (sql.includes("INSERT INTO sessions")) return { rowCount: 0, rows: [] };
+    if (sql.includes("expired")) return { rowCount: 1, rows: [{ expired: true, session_mode: "own" }] };
+    throw new Error(`Unexpected SQL: ${sql}`);
+  };
+  const blocked = await executeTrackSelect({
+    sessionId: SESSION_A,
+    body: { trackType: "explore" },
+    query: expired.query,
+  });
+  assert.equal(blocked.ok, false);
+  if (!blocked.ok) assert.equal(blocked.status, 410);
+
+  const conflict = createDb();
+  conflict.query = async (sql) => {
+    if (sql.includes("INSERT INTO sessions")) return { rowCount: 0, rows: [] };
+    if (sql.includes("expired")) return { rowCount: 1, rows: [{ expired: false, session_mode: "demo" }] };
+    throw new Error(`Unexpected SQL: ${sql}`);
+  };
+  const rejected = await executeTrackSelect({
+    sessionId: SESSION_A,
+    body: { trackType: "explore", demoStudentId: 1 },
+    query: conflict.query,
+  });
+  assert.equal(rejected.ok, false);
+  if (!rejected.ok) assert.equal(rejected.status, 409);
+});
+
+test("an invalid demo student does not write a session", async () => {
+  const db = createDb();
+  const outcome = await executeTrackSelect({
+    sessionId: SESSION_A,
+    body: { trackType: "explore", demoStudentId: 16 },
+    query: db.query,
+  });
+  assert.equal(outcome.ok, false);
+  if (!outcome.ok) assert.equal(outcome.status, 422);
+  assert.equal(db.calls.length, 0);
+});
+
 test("updating a profile changes only the requested grade and confidence", async () => {
   const db = createDb({
     [SESSION_A]: {

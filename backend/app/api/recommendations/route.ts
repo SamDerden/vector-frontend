@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { query } from "@/lib/db";
-import { handleError, jsonError } from "@/lib/http";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
 import {
   fetchLatestRecommendation,
   savedRecommendationBody,
@@ -17,6 +18,8 @@ export async function GET(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
+    const limited = await abuseGuard.guardRead(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
 
     const row = await fetchLatestRecommendation(query, session.sessionId);
     if (!row) {

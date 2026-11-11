@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, query } from "@/lib/db";
 import {
   educationRouteSchema,
@@ -7,7 +8,7 @@ import {
   readEducationRoute,
   saveEducationRoute,
 } from "@/lib/education-route";
-import { handleError, jsonError } from "@/lib/http";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
 import { requireExistingSession } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireExistingSession(request);
     if ("error" in session) return session.error;
+    const limited = await abuseGuard.guardRead(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
     const parsed = professionKeySchema.safeParse(professionKeyFrom(request) ?? "");
     if (!parsed.success) return handleError(parsed.error);
     const route = await readEducationRoute(query, session.sessionId, parsed.data);
@@ -62,6 +65,8 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await requireExistingSession(request);
     if ("error" in session) return session.error;
+    const limited = await abuseGuard.guardWrite(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
     let body: unknown;
     try {
       body = await request.json();

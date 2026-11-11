@@ -7,6 +7,19 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000;
+let clock = (): number => Date.now();
+
+export function setCacheClock(next: () => number): void {
+  clock = next;
+}
+
+export function shouldCachePipelineResult(input: {
+  generationMode: string;
+  retrievalMode: string;
+}): boolean {
+  return input.generationMode === "llm" && input.retrievalMode === "semantic";
+}
 
 /**
  * Генерирует ключ кэша на основе ответов, версий промта, каталога и конфига.
@@ -28,9 +41,10 @@ export function getFromCache(key: string): unknown | null {
   const entry = cache.get(key);
   if (!entry) return null;
 
-  // Опционально: можно добавить TTL (время жизни кэша)
-  // const ttl = 1000 * 60 * 60; // 1 час
-  // if (Date.now() - entry.cachedAt > ttl) { cache.delete(key); return null; }
+  if (clock() - entry.cachedAt >= CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
 
   return entry.data;
 }
@@ -39,7 +53,7 @@ export function getFromCache(key: string): unknown | null {
  * Сохраняет результат в кэш.
  */
 export function setCache(key: string, data: unknown): void {
-  cache.set(key, { data, cachedAt: Date.now() });
+  cache.set(key, { data, cachedAt: clock() });
 }
 
 /**
