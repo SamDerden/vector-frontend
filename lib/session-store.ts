@@ -6,9 +6,9 @@ type SessionStorage = Pick<Storage, "getItem" | "setItem">;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-// X-Session-ID is an unauthenticated capability stored in localStorage.
-// Anyone who knows the UUID can read and write that session. This is not login.
-// The id must stay out of URLs, logs, and analytics.
+// The UUID locates a session; it is not proof of ownership.
+// Demo sessions are tab-scoped; own sessions may persist for seven days.
+// Keep identifiers out of URLs, logs, and analytics.
 export function sessionStorageKey(scope: SessionScope): string {
   if (scope.mode === "own") return "X-Session-ID";
   if (!Number.isInteger(scope.studentId) || scope.studentId < 1) {
@@ -43,9 +43,14 @@ export function sessionHeader(
   return session ? { "X-Session-ID": session } : null;
 }
 
+export function browserStorage(scope: SessionScope): Storage {
+  if (typeof window === "undefined") throw new Error("Browser storage is unavailable");
+  return scope.mode === "demo" ? window.sessionStorage : window.localStorage;
+}
+
 export function browserSessionId(scope: SessionScope): string {
   if (typeof window === "undefined") return "";
-  return readOrCreateSessionId(scope, window.localStorage);
+  return readOrCreateSessionId(scope, browserStorage(scope));
 }
 
 export function generationSessionScope(input: { dossier?: { studentId: number } }): SessionScope {
