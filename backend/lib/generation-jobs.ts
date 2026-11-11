@@ -452,3 +452,47 @@ export function inProgressBody(job: GenerationJob): Record<string, unknown> {
     retryAfterMs: 2000,
   };
 }
+
+/** Transactional FIFO admission. Existing idempotent requests never consume a second queue place. */
+export async function enqueueGenerationJob(
+  connect: () => Promise<{ query: DbQuery; release: () => void }>,
+  query: DbQuery,
+  input: { sessionId: string; clientRequestId: string; inputHash: string; snapshot: GenerationInputSnapshot },
+): Promise<ClaimResult | { kind: "full" }> {
+  const existing = await query(READ_JOB_SQL, [input.sessionId, input.clientRequestId]);
+  if (existing.rows[0]) {
+    const job = mapJob(existing.rows[0]);
+    return job ? decideExisting(job, input.inputHash) : { kind: "unavailable" };
+  }
+  const client = await connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(714113, 1)");
+    const current = await client.query(READ_JOB_SQL, [input.sessionId, input.clientRequestId]);
+    if (current.rows[0]) {
+      await client.query("COMMIT");
+      const job = mapJob(current.rows[0]);
+      return job ? decideExisting(job, input.inputHash) : { kind: "unavailable" };
+    }
+    const capacity = await client.query("SELECT count(*)::int AS waiting FROM generation_jobs WHERE status = 'pending'");
+    if (Number(capacity.rows[0]?.waiting ?? 0) >= 30) {
+      await client.query("COMMIT");
+      return { kind: "full" };
+    }
+    const inserted = await client.query(
+      CLAIM_JOB_SQL.replace("'running', 1, 'api-request', now() + interval '${JOB_LOCK}'", "'pending', 0, NULL, NULL"),
+      [input.sessionId, input.clientRequestId, input.inputHash, JSON.stringify(input.snapshot)],
+    );
+    await client.query("COMMIT");
+    const created = inserted.rows[0] ? mapJob(inserted.rows[0]) : null;
+    if (created) return { kind: "owned", job: created };
+    const raced = await query(READ_JOB_SQL, [input.sessionId, input.clientRequestId]);
+    const job = raced.rows[0] ? mapJob(raced.rows[0]) : null;
+    return job ? decideExisting(job, input.inputHash) : { kind: "unavailable" };
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
