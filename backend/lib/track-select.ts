@@ -58,13 +58,25 @@ export async function executeTrackSelect(input: {
   }
 
   const { trackType, schoolGrade, confidenceBefore } = parsed.data;
-  await input.query(
-    `INSERT INTO sessions (id, track_type, created_at, updated_at)
-     VALUES ($1, $2, now(), now())
+  const demoStudentId = isRecord(input.body) ? input.body.demoStudentId : undefined;
+  if (demoStudentId !== undefined &&
+      (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) ||
+       demoStudentId < 1 || demoStudentId > 15)) {
+    return { ok: false, status: 422, error: "Invalid demo student id" };
+  }
+  const sessionMode = demoStudentId === undefined ? "own" : "demo";
+  const lifetimeHours = sessionMode === "demo" ? 24 : 168;
+  const inserted = await input.query(
+    `INSERT INTO sessions (id, track_type, session_mode, expires_at, created_at, updated_at)
+     VALUES ($1, $2, $3, now() + ($4::integer * interval '1 hour'), now(), now())
      ON CONFLICT (id)
-     DO UPDATE SET track_type = EXCLUDED.track_type, updated_at = now()`,
-    [input.sessionId, trackType]
+     DO UPDATE SET track_type = EXCLUDED.track_type, updated_at = now()
+     WHERE sessions.expires_at IS NULL OR sessions.expires_at > now()`,
+    [input.sessionId, trackType, sessionMode, lifetimeHours]
   );
+  if (inserted.rowCount === 0) {
+    return { ok: false, status: 410, error: "Session expired. Start a new session." };
+  }
 
   if (schoolGrade === undefined && confidenceBefore === undefined) {
     return {
