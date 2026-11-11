@@ -20,7 +20,7 @@ test("Sofi receives canonical clarification answers",()=>{
 test("own route retains grade-specific baseline diagnosis",()=>{
  assert.match(page,/\/api\/diagnostic\/questions\?grade=/);
  assert.match(backend,/\/api\/diagnostic\/submit/);
- assert.match(backend,/schoolGrade:input\.dossier\?\.grade\?\?input\.grade/);
+ assert.match(backend,/schoolGrade:\s*input\.dossier\?\.grade\s*\?\?\s*input\.grade/);
 });
 test("same-origin API proxy remains configured",()=>{
  assert.match(config,/source: "\/api\/:path\*"/);

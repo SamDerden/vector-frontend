@@ -152,7 +152,7 @@ WHERE d.id = $1 AND d.session_id = $2`;
 
 export const CLARIFICATION_VERSION_SQL = `SELECT c.id, c.submitted_at
 FROM clarifications c
-WHERE c.session_id = $1
+WHERE c.session_id = $1 AND c.diagnostic_id = $2
 ORDER BY c.submitted_at DESC
 LIMIT 1`;
 

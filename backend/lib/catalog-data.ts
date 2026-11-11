@@ -5,6 +5,7 @@ export type ClarificationOption = {
   value: string;
   label: string;
   allow_custom_text?: boolean;
+  exclusive_with?: string[];
 };
 
 export type ClarificationQuestion = {
@@ -69,6 +70,7 @@ function readJson<T>(relativePath: string): T {
 }
 
 let clarificationCache: ClarificationQuestion[] | null = null;
+let primaryClarificationCache: ClarificationQuestion[] | null = null;
 let questionnairesCache: BiletQuestionnaire[] | null = null;
 let mockStudentsCache: MockStudent[] | null = null;
 let graphCache: GraphProfession[] | null | undefined;
@@ -82,6 +84,26 @@ export function getClarificationQuestions(): ClarificationQuestion[] {
     clarificationCache = data.agent_clarification_questions ?? [];
   }
   return clarificationCache;
+}
+
+export function getPrimaryClarificationQuestions(): ClarificationQuestion[] {
+  if (!primaryClarificationCache) {
+    const data = readJson<{ agent_clarification_questions: ClarificationQuestion[] }>(
+      "data/agent_clarification_1-4.json"
+    );
+    const adultById = new Map(getClarificationQuestions().map(question => [question.question_id, question]));
+    primaryClarificationCache = (data.agent_clarification_questions ?? []).map(question => {
+      const adult = adultById.get(question.question_id);
+      return {
+        ...question,
+        options: question.options.map(option => {
+          const adultOption = adult?.options.find(item => item.value === option.value);
+          return { ...option, ...(adultOption?.exclusive_with ? { exclusive_with: adultOption.exclusive_with } : {}) };
+        }),
+      };
+    });
+  }
+  return primaryClarificationCache;
 }
 
 export function getBiletQuestionnaires(): BiletQuestionnaire[] {

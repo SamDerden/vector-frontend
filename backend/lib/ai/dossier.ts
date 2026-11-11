@@ -3,6 +3,7 @@ import patterns from "@/config/validation_patterns.json";
 import agePolicy from "@/config/age_policy.json";
 import questionMaster from "@/data/bilet_questions_master.json";
 import clarificationMaster from "@/data/agent_clarification.json";
+import primaryClarificationMaster from "@/data/agent_clarification_1-4.json";
 
 // ---------- Типы (из задания) ----------
 export type DossierAnswer = {
@@ -124,9 +125,10 @@ function makeQuestionKey(questionnaire: string, questionId: string): string {
   return `${normalizeQuestionnaire(questionnaire)}:${questionId}`;
 }
 
-function getQuestionText(questionnaire: string, questionId: string): string {
+function getQuestionText(questionnaire: string, questionId: string, grade: number): string {
   if (questionnaire === "agent_clarification") {
-    return clarificationMaster.agent_clarification_questions.find((q) => q.question_id === questionId)?.text ?? questionId;
+    const master = grade <= 4 ? primaryClarificationMaster : clarificationMaster;
+    return master.agent_clarification_questions.find((q) => q.question_id === questionId)?.text ?? questionId;
   }
   const configured = questionMaster.questionnaires.find(
     (item) => item.questionnaire_name === questionnaire
@@ -217,7 +219,8 @@ export function buildDossier(
     if (selectedStrings.length === 0) continue;
 
     if (questionnaire === "agent_clarification") {
-      const question = clarificationMaster.agent_clarification_questions.find((q) => q.question_id === questionId);
+      const master = student.school_grade <= 4 ? primaryClarificationMaster : clarificationMaster;
+      const question = master.agent_clarification_questions.find((q) => q.question_id === questionId);
       if (question) {
         selectedStrings = selectedStrings.map((value) => question.options.find((option) => option.value === value)?.label ?? value);
       }
@@ -226,7 +229,7 @@ export function buildDossier(
     // Получаем текст вопроса
     const qText =
       questionsDict[questionnaire]?.[questionId]?.text ??
-      getQuestionText(questionnaire, questionId);
+      getQuestionText(questionnaire, questionId, student.school_grade);
 
     // 6. Добавляем в досье с ref
     answers.push({

@@ -731,3 +731,17 @@ test("pipeline failure returns 502 and does not save a recommendation", async ()
   if (!outcome.ok) assert.equal(outcome.status, 502);
   assert.equal(harness.inserts.length, 0);
 });
+
+test("generation binds stored clarifications to the selected diagnostic", async () => {
+  const harness = createHarness({ [SESSION_A]: {
+    grade: 7, diagnostic: [{ questionId: "q1", answer: "техника" }],
+    clarifications: [{ questionId: "agent_q2_work_style", answer: "solo" }],
+  } });
+  await executeGenerate({ sessionId: SESSION_A, body: {}, deps: harness.deps });
+  const reads = harness.calls.filter(call => call.sql.includes("FROM clarifications"));
+  assert.ok(reads.length > 0);
+  for (const read of reads) {
+    assert.match(read.sql, /c\.diagnostic_id = \$2/);
+    assert.deepEqual(read.params, [SESSION_A, `diagnostic-${SESSION_A}`]);
+  }
+});

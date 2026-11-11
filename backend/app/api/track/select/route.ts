@@ -1,3 +1,4 @@
+import { consumeLimit, clientBucket } from "@/lib/request-limits";
 import { NextRequest, NextResponse } from "next/server";
 
 import { pool, query } from "@/lib/db";
@@ -13,6 +14,8 @@ export async function POST(request: NextRequest) {
     const header = readSessionId(request);
     if ("error" in header) return header.error;
 
+    await consumeLimit(query, "sessions:global", 60, 120);
+    await consumeLimit(query, "sessions:ip:" + clientBucket(request.headers), 60, 30);
     let rawBody: unknown;
     try {
       rawBody = await request.json();

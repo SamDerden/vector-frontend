@@ -69,11 +69,11 @@ export async function GET(request: NextRequest) {
          FROM clarifications c
          JOIN clarification_answers ca
            ON ca.clarification_id = c.id
-         WHERE c.session_id = $1
+         WHERE c.session_id = $1 AND c.diagnostic_id = $2
          GROUP BY c.id, c.submitted_at
          ORDER BY c.submitted_at DESC
          LIMIT 1`,
-        [session.sessionId]
+        [session.sessionId, diagnostic.rows[0]?.id ?? null]
       );
       clarification = clarificationResult.rows[0] ?? null;
     } catch (error) {

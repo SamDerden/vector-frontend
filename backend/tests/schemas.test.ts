@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { validateClarificationAnswers } from "../lib/clarification.ts";
 import {
   getClarificationQuestions,
+  getPrimaryClarificationQuestions,
   getBiletQuestionnaires,
   getMockStudents,
   getNavigatorGraph,
@@ -25,6 +26,22 @@ test("clarification catalog has six questions with options", () => {
     assert.ok(question.question_id.startsWith("agent_q"));
     assert.ok(question.options.length >= 2);
   }
+});
+
+test("primary clarification uses six child-friendly questions and preserves canonical IDs", () => {
+  const adult = getClarificationQuestions();
+  const primary = getPrimaryClarificationQuestions();
+  assert.equal(primary.length, 6);
+  assert.deepEqual(primary.map(q => q.question_id), adult.map(q => q.question_id));
+  for (let i = 0; i < primary.length; i++) {
+    assert.deepEqual(primary[i].options.map(o => o.value), adult[i].options.map(o => o.value));
+    assert.ok(primary[i].text.trim().length > 0);
+  }
+  assert.ok(primary[0].text.includes("нравится"));
+  assert.equal(validateClarificationAnswers(
+    primary.map(q => ({questionId: q.question_id, answer: [q.options[0].value]})),
+    primary
+  ).length, 0);
 });
 
 test("bilet questionnaires cover grades 1-11", () => {

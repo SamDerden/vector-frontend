@@ -4,7 +4,8 @@ import { isMissingSchemaError, pool, query } from "@/lib/db";
 import { handleError, jsonError } from "@/lib/http";
 import { parseIdempotencyKey } from "@/lib/generation-jobs";
 import { executeGenerate } from "@/lib/sofi-generate";
-import { runSofiPipeline } from "@/lib/sofi-pipeline";
+import { limitedPipeline } from "@/lib/limited-pipeline";
+import { consumeLimit } from "@/lib/request-limits";
 import { requireExistingSession } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -22,6 +23,8 @@ export async function POST(request: NextRequest) {
       return session.error;
     }
 
+    await consumeLimit(query, "generate:global", 60, 30);
+    await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
     let rawBody: unknown = {};
     try {
       const rawText = await request.text();
@@ -40,12 +43,14 @@ export async function POST(request: NextRequest) {
       deps: {
         query,
         connect: () => pool.connect(),
-        pipeline: runSofiPipeline,
+        pipeline: limitedPipeline,
         modelName: process.env.LLM_MODEL ?? process.env.AI_MODEL ?? "sofi",
       },
     });
     if (!outcome.ok) {
-      return jsonError(outcome.error, outcome.status, outcome.details);
+      const response = jsonError(outcome.error, outcome.status, outcome.details);
+      if (outcome.status === 429) response.headers.set("Retry-After", "60");
+      return response;
     }
 
     return NextResponse.json(outcome.body, { status: outcome.status });

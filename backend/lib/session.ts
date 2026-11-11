@@ -23,7 +23,7 @@ export function readSessionId(request: NextRequest) {
 }
 
 export function sessionProofEnforced(): boolean {
-  return process.env.SESSION_PROOF_ENFORCED === "true";
+  return process.env.NODE_ENV === "production" || process.env.SESSION_PROOF_ENFORCED === "true";
 }
 
 export function authorizeSessionOwnership(request: NextRequest, sessionId: string) {

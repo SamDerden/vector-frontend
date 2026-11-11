@@ -97,8 +97,9 @@ export async function fetchDemoStudents() {
   return response.data;
 }
 
-export async function fetchClarificationQuestions() {
-  const response = await backendGet<{ data: ClarificationQuestion[] }>("/api/clarification/questions");
+export async function fetchClarificationQuestions(grade?: number) {
+  const suffix = grade === undefined ? "" : "?grade=" + encodeURIComponent(String(grade));
+  const response = await backendGet<{ data: ClarificationQuestion[] }>("/api/clarification/questions" + suffix);
   if (response.data.length !== 6) throw new Error("Ожидалось шесть уточняющих вопросов Sofi");
   return response.data;
 }
@@ -141,7 +142,7 @@ async function pollGenerationJob(
       headers: { "X-Session-ID": session },
       signal,
     });
-    if (response.status === 410) {
+    if (response.status === 410 || response.status === 403) {
       const expired = new Error("Session expired") as Error & { status?: number };
       expired.status = 410;
       throw expired;
@@ -248,6 +249,24 @@ export async function generateDemoWithBackend(input: {
   if (!session) throw new Error("Сессия доступна только в браузере");
   const storage = input.storage ?? browserStorage(scope);
   const fetchImpl = input.fetchImpl ?? fetch;
+  const previousRequest = readGenerationRequest(scope, storage);
+  if (previousRequest?.state === "open") {
+    const existing = await fetchImpl(`${API_BASE}/api/recommendations/jobs/${previousRequest.requestId}`, {
+      cache: "no-store", headers: { "X-Session-ID": session }, signal: input.signal,
+    });
+    if (existing.status === 200 || existing.status === 202) {
+      const finished = await pollGenerationJob(session, previousRequest.requestId, input.signal, fetchImpl);
+      settleGenerationRequest(scope, storage);
+      return finished;
+    }
+    if (existing.status === 502) {
+      const failure = readPayload(await existing.text());
+      if (terminalJobFailure(502, failure.payload)) settleGenerationRequest(scope, storage);
+      else throw new Error("Сервис рекомендаций временно недоступен. Попробуй ещё раз.");
+    }
+    else if (![403,404,410].includes(existing.status)) throw new Error("Не удалось проверить предыдущий запрос. Попробуй позже.");
+  }
+  openGenerationRequest(scope, storage);
   const trackBody = {
     trackType: input.dossier ? "explore" : input.track,
     schoolGrade: input.dossier?.grade ?? input.grade,
@@ -257,7 +276,7 @@ export async function generateDemoWithBackend(input: {
     await request("/api/track/select", session, trackBody);
   } catch (error) {
     const status = error instanceof Error ? (error as Error & { status?: number }).status : undefined;
-    if (status !== 409 && status !== 410) throw error;
+    if (status !== 409 && status !== 410 && status !== 403) throw error;
     session = rotateSessionId(scope, storage);
     // Retry only the initial session selection; never replay diagnostic or
     // generation writes automatically after a failure on those endpoints.
