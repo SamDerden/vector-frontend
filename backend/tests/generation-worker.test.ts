@@ -550,7 +550,7 @@ test("a restarted worker picks up the pending job left by the previous process",
   const restarted = startGenerationWorker({ ...deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }, "worker-b"));
+  }, "worker-b"), concurrency: 1 });
   for (let attempt = 0; attempt < 50 && calls < 2; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
