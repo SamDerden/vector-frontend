@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readOrCreateSessionId, sessionStorageKey, requestStorageKey, openGenerationRequest } from "../lib/session-store.ts";
+import { readOrCreateSessionId, sessionStorageKey, requestStorageKey, openGenerationRequest, rotateSessionId } from "../lib/session-store.ts";
 
 function memoryStorage() {
   const values = new Map();
@@ -46,4 +46,20 @@ test("a fresh tab has no access to the previous tab's demo UUID", () => {
   const freshTab = memoryStorage();
   assert.equal(freshTab.getItem(sessionStorageKey(scope)), null);
   assert.equal(readOrCreateSessionId(scope, freshTab, () => B), B);
+});
+
+test("rotation replaces only the affected demo session and invalidates its pending job", () => {
+  const storage = memoryStorage();
+  const one = { mode: "demo", studentId: 1 };
+  const other = { mode: "demo", studentId: 2 };
+  readOrCreateSessionId(one, storage, () => A);
+  readOrCreateSessionId(other, storage, () => B);
+  openGenerationRequest(one, storage, () => C);
+  openGenerationRequest(other, storage, () => D);
+  assert.equal(rotateSessionId(one, storage, () => D), D);
+  assert.equal(storage.getItem(sessionStorageKey(one)), D);
+  assert.equal(storage.getItem(sessionStorageKey(other)), B);
+  assert.equal(storage.getItem(requestStorageKey(one)), "");
+  assert.equal(openGenerationRequest(one, storage, () => A), A);
+  assert.equal(openGenerationRequest(other, storage, () => C), D);
 });
