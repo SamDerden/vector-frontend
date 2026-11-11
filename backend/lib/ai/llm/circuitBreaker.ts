@@ -1,5 +1,5 @@
 // lib/ai/llm/circuitBreaker.ts
-import llmConfig from "@/config/llm.config.json";
+import llmConfig from "@/config/llm.config.json" with { type: "json" };
 
 let failureCount = 0;
 let blockedUntil: number | null = null;
