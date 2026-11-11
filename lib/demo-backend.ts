@@ -97,8 +97,9 @@ export async function fetchDemoStudents() {
   return response.data;
 }
 
-export async function fetchClarificationQuestions() {
-  const response = await backendGet<{ data: ClarificationQuestion[] }>("/api/clarification/questions");
+export async function fetchClarificationQuestions(grade?: number) {
+  const suffix = grade === undefined ? "" : "?grade=" + encodeURIComponent(String(grade));
+  const response = await backendGet<{ data: ClarificationQuestion[] }>("/api/clarification/questions" + suffix);
   if (response.data.length !== 6) throw new Error("Ожидалось шесть уточняющих вопросов Sofi");
   return response.data;
 }
