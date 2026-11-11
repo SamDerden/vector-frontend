@@ -5,6 +5,7 @@ export type ClarificationOption = {
   value: string;
   label: string;
   allow_custom_text?: boolean;
+  exclusive_with?: string[];
 };
 
 export type ClarificationQuestion = {
@@ -90,7 +91,17 @@ export function getPrimaryClarificationQuestions(): ClarificationQuestion[] {
     const data = readJson<{ agent_clarification_questions: ClarificationQuestion[] }>(
       "data/agent_clarification_1-4.json"
     );
-    primaryClarificationCache = data.agent_clarification_questions ?? [];
+    const adultById = new Map(getClarificationQuestions().map(question => [question.question_id, question]));
+    primaryClarificationCache = (data.agent_clarification_questions ?? []).map(question => {
+      const adult = adultById.get(question.question_id);
+      return {
+        ...question,
+        options: question.options.map(option => {
+          const adultOption = adult?.options.find(item => item.value === option.value);
+          return { ...option, ...(adultOption?.exclusive_with ? { exclusive_with: adultOption.exclusive_with } : {}) };
+        }),
+      };
+    });
   }
   return primaryClarificationCache;
 }
