@@ -48,7 +48,7 @@ export type ElementaryDirection = { industry_id:string; tag:string; evidence_ref
 export function buildElementaryTargets(dossier:Dossier,catalog:NormalizedCatalog):{targets:ElementaryDirection[];warnings:string[]} {
  const warnings=new Set<string>();
  const evidence=new Map<string,string[]>();
- const validDirections=new Set(directions.map(d=>d[0]));
+ const validDirections=new Set<string>(directions.map(d=>d[0]));
  for(const answer of dossier.answers){
    // Only answers about interests contribute evidence; logistical constraints do not.
    if(answer.questionnaire==="agent_clarification" && !["agent_q1_likes","agent_q3_tasks"].includes(answer.questionId))continue;
