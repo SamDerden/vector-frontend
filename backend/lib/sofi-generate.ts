@@ -15,6 +15,7 @@ import {
   DIAGNOSTIC_VERSION_SQL,
   TRACK_SQL,
   claimGenerationJob,
+  enqueueGenerationJob,
   completeOwnedGenerationJob,
   failGenerationJob,
   generationInputHash,
@@ -284,6 +285,7 @@ export async function executeGenerate(input: {
   body: unknown;
   idempotencyKey?: string | null;
   deps: GenerateDeps;
+  queueEnabled?: boolean;
 }): Promise<GenerateOutcome> {
   const parsedBody = generateRecommendationsSchema.safeParse(input.body);
   if (!parsedBody.success) {
@@ -454,12 +456,21 @@ export async function executeGenerate(input: {
       professionIds: professions.map((item) => item.id),
     };
     const inputHash = generationInputHash(snapshot);
-    const claim = await claimGenerationJob(input.deps.query, {
+    const claim = input.queueEnabled && input.idempotencyKey
+      ? await enqueueGenerationJob(input.deps.connect, input.deps.query, {
+      sessionId: input.sessionId,
+      clientRequestId: input.idempotencyKey,
+      inputHash,
+      snapshot,
+    }) : await claimGenerationJob(input.deps.query, {
       sessionId: input.sessionId,
       clientRequestId: input.idempotencyKey,
       inputHash,
       snapshot,
     });
+    if (claim.kind === "full") {
+      return { ok: false, status: 429, error: "Сейчас «Вектор» помогает сразу многим ребятам. Твои ответы сохранены! Попробуй чуть позже — проходить тест заново не нужно.", details: { code: "queue_full" } };
+    }
     if (claim.kind === "conflict") {
       return {
         ok: false,
@@ -501,6 +512,7 @@ export async function executeGenerate(input: {
       return { ok: true, status: 201, body: replayBody(stored, claim.job) };
     }
     ownedJob = claim.job;
+    if (input.queueEnabled) return { ok: true, status: 202, body: inProgressBody(claim.job) };
     if (suppliedClarifications && parsedBody.data.clarificationAnswers) {
       try {
         await writeClarificationAnswers(input.deps, {
