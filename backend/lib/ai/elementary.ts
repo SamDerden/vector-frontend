@@ -1,4 +1,4 @@
-import childQuestions from "@/data/agent_clarification_1-4.json";
+import childQuestions from "@/data/agent_clarification_1-4.json" with { type: "json" };
 import type { Dossier } from "./dossier";
 import type { NormalizedCatalog } from "./catalog";
 import { isTrialEligibleForGrade } from "./age";
