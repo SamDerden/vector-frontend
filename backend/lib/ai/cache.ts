@@ -7,6 +7,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // One hour; never reuse an unbounded fallback.
 
 /**
  * Генерирует ключ кэша на основе ответов, версий промта, каталога и конфига.
@@ -28,9 +29,10 @@ export function getFromCache(key: string): unknown | null {
   const entry = cache.get(key);
   if (!entry) return null;
 
-  // Опционально: можно добавить TTL (время жизни кэша)
-  // const ttl = 1000 * 60 * 60; // 1 час
-  // if (Date.now() - entry.cachedAt > ttl) { cache.delete(key); return null; }
+  if (Date.now() - entry.cachedAt >= CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
 
   return entry.data;
 }
