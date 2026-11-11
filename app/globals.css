@@ -743,3 +743,17 @@
   .primary-adventure .diagnostic-panel .option-list { grid-template-columns: 1fr; }
   .primary-adventure .diagnostic-panel .option { min-height: 64px; }
 }
+
+/* Mobile profession profile and route completion clarity */
+.vector-journey-stage-list button.completed{background:linear-gradient(135deg,#e0f7ed,#d6f4ec);border-color:#52b69a;color:#16594b}
+.vector-journey-stage-list button.completed>span{background:#2b9f81;color:#fff}
+.vector-journey-stage-list button.completed.selected{outline:2px solid #248f77;outline-offset:1px}
+.vector-journey-stage-list button:focus-visible{outline:3px solid #356de5;outline-offset:2px}
+@media(max-width:600px){
+ .vector-profession-hero.vector-trial-hero{min-height:0;padding:14px 16px;margin:12px 0 16px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+ .vector-profession-hero .vector-trial-title{flex:1 1 0;min-width:0}
+ .vector-profession-hero .vector-trial-title h1{font-size:clamp(21px,5.5vw,28px);line-height:1.18;overflow-wrap:anywhere}
+ .vector-profession-hero .vector-trial-leshii{flex:0 0 39%;width:39%;max-height:165px;align-self:center;margin:0;object-fit:contain}
+ .vector-journey-stage-list button{gap:9px;padding:11px}
+ .vector-journey-stage-list button b{font-size:11px;max-width:90px;text-align:right}
+}
