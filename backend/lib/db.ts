@@ -9,9 +9,11 @@ function createPool() {
     );
   }
 
+  const requestedMax = Number(process.env.DATABASE_POOL_MAX ?? 30);
+  const max = Number.isInteger(requestedMax) && requestedMax >= 1 && requestedMax <= 30 ? requestedMax : 30;
   return new Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 30,
+    max,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     ssl:
