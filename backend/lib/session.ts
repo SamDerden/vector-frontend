@@ -44,7 +44,7 @@ export async function requireExistingSession(request: NextRequest) {
   const denied = authorizeSessionOwnership(request, header.sessionId);
   if (denied) return { error: denied };
 
-  const session = await query("SELECT id FROM sessions WHERE id = $1 AND (expires_at IS NULL OR expires_at > now())", [
+  const session = await query("SELECT id, expires_at <= now() AS expired FROM sessions WHERE id = $1", [
     header.sessionId,
   ]);
 
@@ -52,5 +52,8 @@ export async function requireExistingSession(request: NextRequest) {
     return { error: jsonError("Session not found", 404) };
   }
 
+  if (session.rows[0]?.expired === true) {
+    return { error: jsonError("Session expired. Start a new session.", 410) };
+  }
   return { sessionId: header.sessionId };
 }
