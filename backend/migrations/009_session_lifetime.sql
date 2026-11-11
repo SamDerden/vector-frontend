@@ -1,6 +1,5 @@
 -- Session lifetime metadata. Existing sessions remain legacy (NULL expiry)
--- until an explicit rollout decision. This migration does not delete rows.
-
+-- until an explicit migration/rollout decision; do not delete them implicitly.
 ALTER TABLE sessions
   ADD COLUMN IF NOT EXISTS session_mode TEXT,
   ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;

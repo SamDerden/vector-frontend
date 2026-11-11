@@ -208,3 +208,63 @@ test("an unknown session receives its own profile and does not change another se
   assert.equal(db.profiles.get(SESSION_B)?.school_grade, 11);
   assert.deepEqual(db.profiles.get(SESSION_B)?.preferences, { cityNote: "other" });
 });
+
+test("demo sessions expire after 24 hours and own sessions after 7 days", async () => {
+  for (const [body, mode, hours] of [
+    [{ trackType: "explore", schoolGrade: 7, demoStudentId: 1 }, "demo", 24],
+    [{ trackType: "explore", schoolGrade: 7 }, "own", 168],
+  ] as const) {
+    const db = createDb();
+    const outcome = await executeTrackSelect({ sessionId: SESSION_A, body, query: db.query });
+    assert.equal(outcome.ok, true);
+    const insert = db.calls.find((call) => call.sql.includes("INSERT INTO sessions"));
+    assert.ok(insert);
+    assert.equal(insert.params[2], mode);
+    assert.equal(insert.params[3], hours);
+    assert.match(insert.sql, /expires_at/);
+    assert.match(insert.sql, /sessions\.expires_at > now\(\)/);
+    assert.match(insert.sql, /sessions\.session_mode = EXCLUDED\.session_mode/);
+  }
+});
+
+test("invalid demo student IDs do not create sessions", async () => {
+  for (const demoStudentId of [0, 16, 1.5, "1", null]) {
+    const db = createDb();
+    const outcome = await executeTrackSelect({
+      sessionId: SESSION_A,
+      body: { trackType: "explore", demoStudentId },
+      query: db.query,
+    });
+    assert.equal(outcome.ok, false);
+    assert.equal(db.calls.length, 0);
+  }
+});
+
+test("mode mismatch rejects the update without touching the profile", async () => {
+  const db = createDb({ [SESSION_A]: { school_grade: 7 } });
+  const query: DbQuery = async (sql, params) => {
+    if (sql.includes("INSERT INTO sessions")) return { rowCount: 0, rows: [] };
+    if (sql.includes("SELECT session_mode")) return { rowCount: 1, rows: [{ session_mode: "demo", expired: false }] };
+    return db.query(sql, params);
+  };
+  const result = await executeTrackSelect({
+    sessionId: SESSION_A, body: { trackType: "explore", schoolGrade: 11 }, query,
+  });
+  assert.deepEqual(result, { ok: false, status: 409, error: "Session mode conflict. Start a new session." });
+  assert.equal(db.calls.length, 0);
+  assert.equal(db.profiles.get(SESSION_A)?.school_grade, 7);
+});
+
+test("expired session returns 410 without profile updates", async () => {
+  const db = createDb();
+  const query: DbQuery = async (sql, params) => {
+    if (sql.includes("INSERT INTO sessions")) return { rowCount: 0, rows: [] };
+    if (sql.includes("SELECT session_mode")) return { rowCount: 1, rows: [{ session_mode: "demo", expired: true }] };
+    return db.query(sql, params);
+  };
+  const result = await executeTrackSelect({
+    sessionId: SESSION_A, body: { trackType: "explore", demoStudentId: 1, schoolGrade: 7 }, query,
+  });
+  assert.deepEqual(result, { ok: false, status: 410, error: "Session expired. Start a new session." });
+  assert.equal(db.calls.length, 0);
+});

@@ -3,13 +3,13 @@ import { pathToFileURL } from "node:url";
 
 import { pool } from "../lib/db.ts";
 import { startGenerationWorker } from "../lib/generation-worker.ts";
-import { runSofiPipeline } from "../lib/sofi-pipeline.ts";
+import { limitedPipeline } from "../lib/limited-pipeline.ts";
 
 async function main() {
   const stop = startGenerationWorker({
     query: (sql, params) => pool.query(sql, params),
     connect: () => pool.connect(),
-    pipeline: runSofiPipeline,
+    pipeline: limitedPipeline,
     modelName: process.env.LLM_MODEL ?? process.env.AI_MODEL ?? "sofi",
   });
   const shutdown = () => {

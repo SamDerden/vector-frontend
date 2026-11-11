@@ -7,10 +7,11 @@ import ragConfig from "@/config/rag.config.json";
 import validationPatterns from "@/config/validation_patterns.json";
 import promptManifest from "@/prompts/manifest.json";
 import { estimateAgeFromGrade, isTrialEligibleForGrade } from "@/lib/ai/age";
-import { getFromCache, makeCacheKey, setCache, shouldCachePipelineResult } from "@/lib/ai/cache";
+import { getFromCache, makeCacheKey, setCache } from "@/lib/ai/cache";
 import { type NormalizedCatalog, type NormalizedProfession } from "@/lib/ai/catalog";
 import { buildDossier } from "@/lib/ai/dossier";
 import { buildFallbackResponse } from "@/lib/ai/fallback";
+import { buildElementaryTargets } from "@/lib/ai/elementary";
 import { generateValidatedResponse } from "@/lib/ai/generate";
 import { OpenAICompatibleClient } from "@/lib/ai/llm/openaiCompatible";
 import { postprocess, type PostprocessContext } from "@/lib/ai/postprocess";
@@ -86,6 +87,8 @@ export async function runSofiPipeline(
   }
 
   const candidates = buildCandidates(catalog, grade);
+  const elementary = tier === "1-4" ? buildElementaryTargets(dossier, catalog) : null;
+  const elementaryActivityIds = new Set(elementary?.targets.flatMap(target=>target.activity_ids) ?? []);
   const industriesMap = Object.fromEntries(
     catalog.industries.map((industry) => [industry.slug, industry.name])
   );
@@ -206,7 +209,7 @@ export async function runSofiPipeline(
             }];
           });
       const juniorActivities = tier === "1-4"
-        ? catalog.trials.filter((trial) => isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))
+        ? catalog.trials.filter((trial) => elementaryActivityIds.has(trial.trial_id) && isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))
         : [];
       const validationContext: ValidationContext = {
         tier,
@@ -214,7 +217,7 @@ export async function runSofiPipeline(
         candidateProfessionIds: candidateSet,
         industryIds: new Set(industryCandidateIds),
         answerRefs: postprocessContext.dossierRefs,
-        activityTypes: new Set(juniorActivities.map((trial) => trial.trial_id)),
+        activityTypes: new Set((tier === "1-4" ? juniorActivities : catalog.trials.filter(trial => isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))).map(trial => trial.trial_id)),
         professionIndustryById: Object.fromEntries(
           catalog.professions.map((profession) => [
             profession.profession_id,
@@ -275,10 +278,11 @@ export async function runSofiPipeline(
                 hit_strength: retrieval.industryScores[industryId] ?? 0,
               })),
               candidates: tierCandidates,
-              activity_types: juniorActivities.map((trial) => ({
+              activity_link_contract: "activity_links[].type must be an activity_id from activity_types; use only supplied evidence refs",
+              activity_types: (tier === "1-4" ? juniorActivities : catalog.trials.filter(trial => isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))).map((trial) => ({
                 activity_id: trial.trial_id,
                 title: trial.title,
-                description: trial.description_1_4,
+                description: tier === "1-4" ? trial.description_1_4 : tier === "5-8" ? trial.description_5_8 : trial.description_9_11,
                 format: trial.format,
                 municipality: trial.municipality,
                 cost: trial.cost,
@@ -365,6 +369,21 @@ export async function runSofiPipeline(
     }
   }
 
+  // Preserve the ZIP elementary.ts evidence threshold and explicit trial mappings.
+  // The LLM writes age-friendly explanations, not the final catalog ID selection.
+  if (elementary && dossier.answers.length >= agePolicy.min_signal_answers) {
+    const mappedTags = elementary.targets.map(target=>({
+      industry_id:target.industry_id,
+      tag:target.tag,
+      why:"Это направление связано с твоими ответами.",
+      evidence_refs:target.evidence_refs
+    }));
+    const selectedIds = [...new Set(elementary.targets.flatMap(target=>target.activity_ids))].slice(0,3);
+    result.interest_tags = mappedTags;
+    result.activity_ids = selectedIds;
+    result.warnings = [...new Set([...(result.warnings ?? []),...elementary.warnings])];
+    if (!mappedTags.length) result.status = "no_match";
+  }
   result.generation = {
     mode,
     tier,
@@ -373,7 +392,9 @@ export async function runSofiPipeline(
     configVersion,
     attempts,
   };
-  if (shouldCachePipelineResult({ generationMode: mode, retrievalMode: retrieval.mode })) {
+  // Do not cache degraded retrieval-only responses: a transient gateway outage
+  // must not keep masking a recovered LLM or semantic retrieval service.
+  if (mode === "llm" && retrieval.mode === "semantic") {
     setCache(cacheKey, result);
   }
   return result;

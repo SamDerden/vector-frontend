@@ -5,6 +5,7 @@ import {
   issueSessionProof,
   ownsAnonymousSession,
   sessionProofCookieName,
+  sessionProofCookieOptions,
   sessionProofEnforced,
   verifySessionProof,
 } from "../lib/session-proof.ts";
@@ -12,7 +13,12 @@ import { interpretSessionRow } from "../lib/session-lifetime.ts";
 
 const SESSION = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
-const env = { SESSION_PROOF_SECRET: "s".repeat(32) } as NodeJS.ProcessEnv;
+const env = { SESSION_PROOF_SECRET: "test-only-secret-at-least-thirty-two-bytes-long" } as NodeJS.ProcessEnv;
+
+test("session UUID alone never proves ownership", () => {
+  assert.equal(ownsAnonymousSession(SESSION, null, env), false);
+  assert.equal(ownsAnonymousSession(SESSION, SESSION, env), false);
+});
 
 test("a valid proof matches only its own session", () => {
   const proof = issueSessionProof(SESSION, env);
@@ -20,6 +26,8 @@ test("a valid proof matches only its own session", () => {
   assert.equal(ownsAnonymousSession(SESSION, proof, env), true);
   assert.equal(verifySessionProof(OTHER, proof, env), false);
   assert.equal(sessionProofCookieName(SESSION).includes(SESSION.replace(/-/g, "")), true);
+  assert.notEqual(sessionProofCookieName(SESSION), sessionProofCookieName(OTHER));
+  assert.equal(verifySessionProof(SESSION, proof.slice(0, 4) + (proof[4] === "A" ? "B" : "A") + proof.slice(5), env), false);
 });
 
 test("missing, forged and stale proofs are rejected", () => {
@@ -34,10 +42,12 @@ test("missing, forged and stale proofs are rejected", () => {
   assert.equal(verifySessionProof(SESSION, `${version}.${nonce}.${mac.slice(0, -1)}b`, env), false);
 });
 
-test("proof enforcement stays off unless the explicit flag is true", () => {
+test("proof enforcement follows production or the explicit flag", () => {
   assert.equal(sessionProofEnforced({} as NodeJS.ProcessEnv), false);
+  assert.equal(sessionProofEnforced({ NODE_ENV: "test" } as NodeJS.ProcessEnv), false);
   assert.equal(sessionProofEnforced({ SESSION_PROOF_ENFORCED: "false" } as NodeJS.ProcessEnv), false);
   assert.equal(sessionProofEnforced({ SESSION_PROOF_ENFORCED: "true" } as NodeJS.ProcessEnv), true);
+  assert.equal(sessionProofEnforced({ NODE_ENV: "production" } as NodeJS.ProcessEnv), true);
 });
 
 test("legacy rows without an expiry flag stay usable", () => {
@@ -48,5 +58,22 @@ test("legacy rows without an expiry flag stay usable", () => {
 });
 
 test("a short signing secret fails closed", () => {
-  assert.throws(() => issueSessionProof(SESSION, { SESSION_PROOF_SECRET: "short" } as NodeJS.ProcessEnv));
+  assert.throws(() => issueSessionProof(SESSION, { SESSION_PROOF_SECRET: "short" } as NodeJS.ProcessEnv), /SESSION_PROOF_SECRET/);
+  assert.throws(() => issueSessionProof(SESSION, {} as NodeJS.ProcessEnv), /SESSION_PROOF_SECRET/);
+});
+
+test("each demo session has an independent HttpOnly cookie", () => {
+  const cookie = sessionProofCookieOptions(true);
+  assert.equal(cookie.httpOnly, true);
+  assert.equal(cookie.secure, true);
+  assert.equal(cookie.sameSite, "strict");
+});
+
+test("demo proof is a browser-session cookie; own proof persists for seven days", () => {
+  const demo = sessionProofCookieOptions(true, "demo");
+  const ownCookie = sessionProofCookieOptions(true, "own");
+  assert.equal("maxAge" in demo, false);
+  assert.equal(ownCookie.maxAge, 7 * 24 * 60 * 60);
+  assert.equal(demo.httpOnly, true);
+  assert.equal(demo.secure, true);
 });

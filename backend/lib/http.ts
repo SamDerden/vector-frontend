@@ -1,3 +1,4 @@
+import { CapacityError } from "./request-limits";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -15,6 +16,7 @@ export function rateLimited(retryAfterMs: number) {
 }
 
 export function handleError(error: unknown) {
+  if (error instanceof CapacityError) return NextResponse.json({ error: error.message }, { status: 429, headers: { "Retry-After": String(error.retryAfter) } });
   if (error instanceof ZodError) {
     return jsonError("Validation failed", 422, error.issues);
   }

@@ -13,6 +13,8 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Demo session isolation tests
+        run: node --experimental-strip-types --import ./tests/register-relative-ts.mjs --test tests/demo-session-isolation.test.mjs tests/demo-backend.test.mjs
       - name: Typecheck
         run: npm run typecheck
       - name: Production build

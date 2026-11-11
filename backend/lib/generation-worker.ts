@@ -23,7 +23,7 @@ import {
 const JOB_COLUMNS = `id, session_id, client_request_id, input_hash, input_snapshot,
   status, recommendation_id, error_code, stage_timings, attempt_count, locked_by, locked_until`;
 
-export const WORKER_ATTACH_SQL = `SELECT ${JOB_COLUMNS},
+export const WORKER_ATTACH_SQL = `SELECT ${JOB_COLUMNS.split(",").map(column => "j." + column.trim()).join(", ")},
   COALESCE(j.recommendation_id, r.id) AS saved_recommendation_id
 FROM generation_jobs j
 LEFT JOIN recommendations r
@@ -235,7 +235,7 @@ export async function runGenerationOnce(deps: WorkerDeps): Promise<boolean> {
     if (saved) {
       const job = mapJob(saved);
       if (job && saved.saved_recommendation_id) {
-        await completeGenerationJob(client.query, {
+        await completeGenerationJob((sql, params) => client.query(sql, params), {
           jobId: job.id,
           sessionId: job.sessionId,
           recommendationId: String(saved.saved_recommendation_id),

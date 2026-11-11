@@ -699,3 +699,184 @@
 .vector-journey-help-guide>img{flex:0 0 100px;width:100px;height:170px;object-fit:contain;object-position:bottom;z-index:1}
 @media(max-width:720px){.vector-journey-help-guide{gap:7px}.vector-journey-help-bubble{padding:16px 14px;border-radius:19px}.vector-journey-help-bubble h2{font-size:18px}.vector-journey-help-bubble p{font-size:13px}.vector-journey-help-guide>img{flex-basis:78px;width:78px;height:135px}}
 @media(max-width:390px){.vector-journey-help-guide>img{flex-basis:65px;width:65px;height:120px}}
+
+/* Grade 1–4: playful presentation over the existing diagnostic pipeline. */
+.primary-adventure {
+  background: linear-gradient(155deg, #f2fff9 0%, #f5f8ff 55%, #fff7ed 100%);
+  border: 1px solid #d5eade;
+}
+.primary-adventure .diagnostic-panel {
+  background: rgba(255,255,255,.78);
+  border-radius: 22px;
+  padding: clamp(16px, 3vw, 30px);
+}
+.primary-adventure .diagnostic-panel .option-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+.primary-adventure .diagnostic-panel .option {
+  min-height: 90px;
+  text-align: left;
+  border-radius: 18px;
+  background: #fff;
+  font-size: 1.05rem;
+  line-height: 1.45;
+}
+.primary-adventure .diagnostic-panel .option.selected {
+  background: #e4f9ed;
+  border-color: #39a47c;
+}
+.primary-illustrated-option {
+  border-radius: 20px;
+  background: linear-gradient(160deg,#fff,#f2fbf6);
+}
+.primary-option-symbol {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 58px;
+  color: #319774;
+  font-size: 2rem;
+}
+@media (max-width: 640px) {
+  .primary-adventure .diagnostic-panel .option-list { grid-template-columns: 1fr; }
+  .primary-adventure .diagnostic-panel .option { min-height: 64px; }
+}
+
+/* Mobile profession profile and route completion clarity */
+.vector-journey-stage-list button.completed{background:linear-gradient(135deg,#e0f7ed,#d6f4ec);border-color:#52b69a;color:#16594b}
+.vector-journey-stage-list button.completed>span{background:#2b9f81;color:#fff}
+.vector-journey-stage-list button.completed.selected{outline:2px solid #248f77;outline-offset:1px}
+.vector-journey-stage-list button:focus-visible{outline:3px solid #356de5;outline-offset:2px}
+@media(max-width:600px){
+ .vector-profession-hero.vector-trial-hero{min-height:0;padding:14px 16px;margin:12px 0 16px;display:flex;flex-wrap:nowrap;align-items:center;gap:10px}
+ .vector-profession-hero .vector-trial-title{flex:1 1 0;min-width:0}
+ .vector-profession-hero .vector-trial-title h1{font-size:clamp(21px,5.5vw,28px);line-height:1.18;overflow-wrap:anywhere}
+ .vector-profession-hero .vector-trial-leshii{flex:0 0 39%;width:39%;max-height:165px;align-self:center;margin:0;object-fit:contain}
+ .vector-journey-stage-list button{gap:9px;padding:11px}
+ .vector-journey-stage-list button b{font-size:11px;max-width:90px;text-align:right}
+}
+
+/* Responsive audit 2026-11-11: consistent phone sizing across all journeys.
+   Scoped to small screens to preserve desktop layout. */
+@media(max-width:640px){
+ html,body{max-width:100%;overflow-x:clip}
+ main,.nav-inner,.demo-workspace,.work-card,.diagnostic-panel,.demo-quiz-screen,
+ .vector-trial-screen,.vector-opportunities,.vector-journey,.vector-profession-story,
+ .vector-analysis-screen,.primary-adventure{box-sizing:border-box;max-width:100%;min-width:0}
+ .work-card,.diagnostic-panel,.vector-journey-panel,.vector-profession-story-card,
+ .vector-opportunity-card,.vector-profile-review,.vector-alternatives{padding:clamp(14px,4vw,20px)}
+ .work-card h1,.demo-quiz-screen h1,.vector-trial-screen h1,.vector-opportunities h1,
+ .vector-journey h1{font-size:clamp(23px,6vw,31px);line-height:1.16;overflow-wrap:break-word}
+ .work-card h2,.demo-quiz-screen h2,.vector-profession-story h2,
+ .vector-journey h2{font-size:clamp(19px,5.2vw,25px);line-height:1.23;overflow-wrap:break-word}
+ .work-card p,.demo-quiz-screen p,.vector-profession-story p,.vector-opportunities p,
+ .vector-journey p{overflow-wrap:anywhere}
+ .work-card img,.demo-quiz-screen img,.vector-trial-screen img,.vector-opportunities img,
+ .vector-journey img{max-width:100%;object-fit:contain}
+ .option-list .option,.diagnostic-panel .option,.illustrated-option{box-sizing:border-box;max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere}
+ .demo-quiz-heading,.vector-flow-nav{min-width:0;gap:10px}
+ .vector-flow-nav{flex-wrap:wrap}
+ .vector-flow-nav .pill{max-width:100%;white-space:normal}
+ .vector-opportunities-hero{min-height:0;padding:16px;gap:12px}
+ .vector-opportunities-hero img{flex:0 0 30%;width:30%;height:110px;object-fit:contain}
+ .vector-opportunities-hero>div{flex:1;min-width:0}
+ .vector-opportunities-hero h1{font-size:clamp(22px,5.5vw,28px)}
+ .vector-journey-stage-list button{min-width:0;width:100%}
+ .vector-journey-stage-list button>div{min-width:0}
+ .vector-journey-stage-list button b{white-space:normal;overflow-wrap:anywhere}
+ .vector-journey-stage-detail{flex-wrap:wrap}
+ .vector-journey-stage-detail .pill{max-width:100%;white-space:normal}
+ .vector-profession-story{grid-template-columns:minmax(0,1fr)}
+ .vector-profession-story-card{min-width:0}
+ .vector-profession-hero.vector-trial-hero{min-height:0}
+ .vector-profession-hero .vector-trial-leshii{max-width:42%;height:auto;max-height:170px}
+ .vector-journey-recommendations,.vector-opportunities-grid,.vector-alternatives-list{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:390px){
+ .vector-journey-stage-list button{gap:8px;padding:10px}
+ .vector-journey-stage-list button>span{flex-basis:30px;height:30px}
+ .vector-journey-stage-list button b{font-size:10px;max-width:75px}
+ .vector-opportunities-hero img{height:92px}
+ .vector-profession-hero .vector-trial-leshii{max-height:145px}
+}
+
+/* Desktop layout overhaul: wider canvas and balanced content grids.
+   Applied after legacy 1100px / 1440px limits, without changing tablet/phone. */
+@media(min-width:1101px){
+ :root{--vector-page-max:1800px;--vector-page-gutter:clamp(24px,2.4vw,52px);--vector-desktop-gap:clamp(18px,1.6vw,30px)}
+ .nav-inner,main,.workspace,.demo-workspace,footer{box-sizing:border-box;width:100%;max-width:var(--vector-page-max);margin-inline:auto}
+ .workspace{padding:28px var(--vector-page-gutter) 80px}
+ .demo-workspace{padding:26px var(--vector-page-gutter) 65px}
+ .nav-inner{padding-inline:var(--vector-page-gutter)}
+ main>.hero{padding-inline:var(--vector-page-gutter);min-height:480px}
+ main>.how,main>.ages,main>.partners,main>.opportunities{margin-inline:var(--vector-page-gutter)}
+ .hero-copy{width:min(55%,850px)}
+ .hero-copy>p{max-width:690px;font-size:clamp(16px,1.15vw,19px)}
+ .work-card{padding:clamp(30px,3vw,54px)}
+ .work-card>.diagnostic-panel{max-width:none}
+ .diagnostic-panel .option-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+ .demo-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(14px,1.4vw,24px)}
+ .demo-card{min-width:0}
+ .demo-quiz-screen,.vector-analysis-screen,.vector-opportunities,.vector-trial-screen,.vector-journey{width:100%;max-width:none;min-width:0;box-sizing:border-box}
+ .demo-quiz-heading{max-width:none}
+ .illustrated-options{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--vector-desktop-gap)}
+ .vector-profession-story{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-desktop-gap)}
+ .vector-profession-story-card{padding:clamp(24px,2vw,36px)}
+ .vector-profession-hero.vector-trial-hero{min-height:200px;gap:30px;padding:24px 38px}
+ .vector-profession-hero .vector-trial-title{flex:1;min-width:0}
+ .vector-profession-hero .vector-trial-leshii{width:clamp(170px,15vw,250px);max-height:200px;flex-shrink:0}
+ .vector-opportunities-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--vector-desktop-gap)}
+ .vector-journey-grid{grid-template-columns:minmax(260px,24%) minmax(0,1fr);gap:var(--vector-desktop-gap)}
+ .vector-journey-left,.vector-journey-right{min-width:0;gap:var(--vector-desktop-gap)}
+ .vector-journey-bottom{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-desktop-gap)}
+ .vector-journey-panel{padding:clamp(20px,1.7vw,30px)}
+ .vector-journey-stage-list{gap:12px}
+ .vector-journey-stage-list button{padding:17px;gap:16px}
+ .vector-journey-recommendations{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(min-width:1101px) and (max-width:1300px){
+ .illustrated-options,.vector-opportunities-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Unified responsive layout foundation — fluid spacing across phone, tablet and desktop.
+   Component grids reflow by available width rather than fixed device presets. */
+:root{
+ --vector-fluid-gutter:clamp(14px,2.6vw,52px);
+ --vector-fluid-gap:clamp(12px,1.5vw,26px);
+ --vector-fluid-card-padding:clamp(16px,2vw,32px);
+}
+.workspace,.demo-workspace,.vector-trial-screen,.vector-opportunities,
+.vector-journey,.demo-quiz-screen,.work-card{min-width:0;box-sizing:border-box}
+.vector-profession-story-card,.vector-journey-panel,.vector-opportunity-card,
+.vector-alternatives-list>*{min-width:0;overflow-wrap:anywhere}
+.vector-opportunity-card .pill,.vector-journey-stage-detail .pill{white-space:normal}
+@media(min-width:761px) and (max-width:1100px){
+ .nav-inner,main,.workspace,.demo-workspace,footer{box-sizing:border-box;width:100%;max-width:100%;margin-inline:auto}
+ .workspace,.demo-workspace{padding-inline:var(--vector-fluid-gutter)}
+ .work-card{padding:var(--vector-fluid-card-padding)}
+ .demo-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .illustrated-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-profession-story{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-opportunities-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--vector-fluid-gap)}
+ .vector-journey-grid{grid-template-columns:minmax(210px,28%) minmax(0,1fr);gap:var(--vector-fluid-gap)}
+ .vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-journey-recommendations{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vector-profession-hero.vector-trial-hero{min-height:0;padding:20px;gap:20px}
+ .vector-profession-hero .vector-trial-leshii{width:24%;max-height:175px}
+}
+@media(min-width:641px) and (max-width:760px){
+ .workspace,.demo-workspace{box-sizing:border-box;width:100%;padding-inline:clamp(14px,3vw,24px)}
+ .work-card{padding:clamp(18px,3vw,26px)}
+ .vector-profession-story,.vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-opportunities-grid,.illustrated-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .vector-journey-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:640px){
+ .workspace,.demo-workspace{width:100%;max-width:100%;box-sizing:border-box}
+ .illustrated-options,.vector-profession-story,.vector-journey-grid,.vector-journey-bottom{grid-template-columns:minmax(0,1fr)}
+ .vector-opportunities-grid{grid-template-columns:minmax(0,1fr)}
+ .work-card,.demo-quiz-screen,.vector-trial-screen,.vector-opportunities,.vector-journey{border-radius:clamp(16px,4vw,24px)}
+}

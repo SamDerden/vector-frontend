@@ -56,6 +56,7 @@ export function presentGeneration(
     if (kind === "grade") return { ok: false, message: GRADE_REQUIRED };
     return { ok: false, message: OTHER_CONFLICT };
   }
+  if (status === 429) return { ok: false, message: "Сейчас слишком много запросов. Подожди минуту и повтори." };
   if (status === 502) return { ok: false, message: JSON_FAILURE };
   return { ok: false, message: status ? `Не удалось получить рекомендации (${status}).` : JSON_FAILURE };
 }

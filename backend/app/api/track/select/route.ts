@@ -1,8 +1,8 @@
+import { consumeLimit, clientBucket } from "@/lib/request-limits";
 import { NextRequest, NextResponse } from "next/server";
 
-import { abuseGuard, clientKeyFromHeaders } from "@/lib/abuse-guard";
 import { pool, query } from "@/lib/db";
-import { handleError, jsonError, rateLimited } from "@/lib/http";
+import { handleError, jsonError } from "@/lib/http";
 import { authorizeSessionOwnership, readSessionId, sessionProofEnforced } from "@/lib/session";
 import { issueSessionProof, sessionProofCookieName, sessionProofCookieOptions } from "@/lib/session-proof";
 import { executeTrackSelect } from "@/lib/track-select";
@@ -12,31 +12,34 @@ export const runtime = "nodejs";
 export async function POST(request: NextRequest) {
   try {
     const header = readSessionId(request);
-    if ("error" in header) {
-      return header.error;
-    }
-    const limited = await abuseGuard.guardTrackCreate(clientKeyFromHeaders(request.headers));
-    if (!limited.ok) return rateLimited(limited.retryAfterMs);
+    if ("error" in header) return header.error;
 
+    await consumeLimit(query, "sessions:global", 60, 120);
+    await consumeLimit(query, "sessions:ip:" + clientBucket(request.headers), 60, 30);
     let rawBody: unknown;
     try {
       rawBody = await request.json();
     } catch (error) {
-      if (error instanceof SyntaxError) {
-        return jsonError("Request body must be valid JSON");
-      }
+      if (error instanceof SyntaxError) return jsonError("Request body must be valid JSON");
       throw error;
     }
 
+    const demoStudentId =
+      rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
+        ? (rawBody as Record<string, unknown>).demoStudentId
+        : undefined;
+    if (
+      demoStudentId !== undefined &&
+      (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) || demoStudentId < 1 || demoStudentId > 15)
+    ) {
+      return jsonError("Invalid demo student id", 422);
+    }
+    const mode = demoStudentId === undefined ? "own" : "demo";
+
+    // Legacy mode remains unchanged until the protected rollout is explicitly enabled.
     if (!sessionProofEnforced()) {
-      const outcome = await executeTrackSelect({
-        sessionId: header.sessionId,
-        body: rawBody,
-        query,
-      });
-      if (!outcome.ok) {
-        return jsonError(outcome.error, outcome.status, outcome.details);
-      }
+      const outcome = await executeTrackSelect({ sessionId: header.sessionId, body: rawBody, query });
+      if (!outcome.ok) return jsonError(outcome.error, outcome.status, outcome.details);
       return NextResponse.json(outcome.body, { status: 200 });
     }
 
@@ -46,13 +49,10 @@ export async function POST(request: NextRequest) {
     } catch {
       return jsonError("Session ownership is not configured", 503);
     }
-    const demoStudentId = rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
-      ? (rawBody as Record<string, unknown>).demoStudentId
-      : undefined;
-    const mode = demoStudentId === undefined ? "own" : "demo";
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+      // Serialize first-time claims of the same UUID across app instances.
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [header.sessionId]);
       const existing = await client.query("SELECT id FROM sessions WHERE id = $1", [header.sessionId]);
       if ((existing.rowCount ?? 0) > 0) {

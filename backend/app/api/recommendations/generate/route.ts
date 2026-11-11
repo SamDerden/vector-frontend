@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, pool, query } from "@/lib/db";
 import { parseIdempotencyKey } from "@/lib/generation-jobs";
-import { handleError, jsonError, rateLimited } from "@/lib/http";
+import { handleError, jsonError } from "@/lib/http";
 import { countMetric, logEvent } from "@/lib/observe";
 import { executeGenerate } from "@/lib/sofi-generate";
-import { runSofiPipeline } from "@/lib/sofi-pipeline";
+import { limitedPipeline } from "@/lib/limited-pipeline";
+import { consumeLimit } from "@/lib/request-limits";
 import { requireExistingSession } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -23,14 +23,8 @@ export async function POST(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
-    const limited = idempotency.key
-      ? await abuseGuard.guardGeneration(session.sessionId, idempotency.key)
-      : await abuseGuard.guardWrite(session.sessionId);
-    if (!limited.ok) {
-      countMetric("generation_rate_limited");
-      return rateLimited(limited.retryAfterMs);
-    }
-
+    await consumeLimit(query, "generate:global", 60, 30);
+    await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
     let rawBody: unknown = {};
     try {
       const rawText = await request.text();
@@ -50,7 +44,7 @@ export async function POST(request: NextRequest) {
       deps: {
         query,
         connect: () => pool.connect(),
-        pipeline: runSofiPipeline,
+        pipeline: limitedPipeline,
         modelName: process.env.LLM_MODEL ?? process.env.AI_MODEL ?? "sofi",
       },
     });
@@ -64,7 +58,9 @@ export async function POST(request: NextRequest) {
           : undefined,
         durationMs: Date.now() - started,
       });
-      return jsonError(outcome.error, outcome.status, outcome.details);
+      const response = jsonError(outcome.error, outcome.status, outcome.details);
+      if (outcome.status === 429) response.headers.set("Retry-After", "60");
+      return response;
     }
 
     logEvent("generation_result", {

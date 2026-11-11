@@ -1,3 +1,4 @@
+import { CapacityError } from "./request-limits.ts";
 import type { PoolClient } from "pg";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -156,7 +157,7 @@ const CLARIFICATION_LOAD_SQL = `SELECT
      FROM clarifications c
      JOIN clarification_answers ca
        ON ca.clarification_id = c.id
-     WHERE c.session_id = $1
+     WHERE c.session_id = $1 AND c.diagnostic_id = $2
      GROUP BY c.id, c.submitted_at
      ORDER BY c.submitted_at DESC
      LIMIT 1`;
@@ -347,7 +348,7 @@ export async function executeGenerate(input: {
     }
   }
 
-  const clarification = await input.deps.query(CLARIFICATION_LOAD_SQL, [input.sessionId]);
+  const clarification = await input.deps.query(CLARIFICATION_LOAD_SQL, [input.sessionId, String(diagnosticRow.id)]);
 
   const profileResult = await input.deps.query(
     `SELECT school_grade, municipality
@@ -434,7 +435,7 @@ export async function executeGenerate(input: {
     const [trackRow, diagnosticVersion, clarificationVersion] = await Promise.all([
       input.deps.query(TRACK_SQL, [input.sessionId]),
       input.deps.query(DIAGNOSTIC_VERSION_SQL, [String(diagnosticRow.id), input.sessionId]),
-      input.deps.query(CLARIFICATION_VERSION_SQL, [input.sessionId]),
+      input.deps.query(CLARIFICATION_VERSION_SQL, [input.sessionId, String(diagnosticRow.id)]),
     ]);
     const snapshot: GenerationInputSnapshot = {
       schemaVersion: 1,
@@ -645,8 +646,8 @@ async function finishOwnedGeneration(source: {
     }
     return {
       ok: false,
-      status: 502,
-      error: "AI service request failed",
+      status: error instanceof CapacityError ? 429 : 502,
+      error: error instanceof CapacityError ? error.message : "AI service request failed",
       details: ownedJob
         ? { requestId: input.idempotencyKey, jobStatus: "failed", errorCode: "pipeline_failed" }
         : undefined,
@@ -755,18 +756,34 @@ async function finishOwnedGeneration(source: {
   // catalog that the AI pipeline used, preserving the profession relationship.
   const graphTrialsById = new Map<string, Record<string, unknown>>();
   const graphProfessionsById = new Map<string, Record<string, unknown>>();
-  let catalogActivities: Array<{ id: string; title: string }> = [];
+  let catalogActivities: Array<{ id: string; title: string; description?: string; durationMinutes?: number | null; format?: string | null; municipality?: string | null; cost?: string | null; sourceUrl?: string | null; organization?: unknown }> = [];
   try {
     const rawCatalog = await fs.readFile(path.resolve(process.cwd(), "data/catalog.normalized.json"), "utf8");
     const catalog = JSON.parse(rawCatalog) as {
       professions?: Array<Record<string, unknown>>;
-      trials?: Array<{ trial_id?: unknown; title?: unknown }>;
+      trials?: Array<{ trial_id?: unknown; title?: unknown; age_min?: unknown; age_max?: unknown; description_1_4?: unknown; duration_minutes?: unknown; format?: unknown; municipality?: unknown; cost?: unknown; source_url?: unknown; organization?: unknown }>;
     };
     if (junior) {
-      catalogActivities = resolveCatalogActivities(
-        catalog.trials ?? [],
-        payload.activityIds
-      );
+      const resolved = resolveCatalogActivities(catalog.trials ?? [], payload.activityIds);
+      const byId = new Map((catalog.trials ?? []).map(trial => [trial.trial_id, trial]));
+      const estimatedAge = prepared.student.school_grade + 6;
+      catalogActivities = resolved.flatMap(item => {
+        const trial = byId.get(item.id);
+        if (!trial) return [];
+        const min = typeof trial.age_min === "number" ? trial.age_min : null;
+        const max = typeof trial.age_max === "number" ? trial.age_max : null;
+        if ((min !== null && estimatedAge < min) || (max !== null && estimatedAge > max)) return [];
+        return [{
+          ...item,
+          description: typeof trial.description_1_4 === "string" ? trial.description_1_4 : "",
+          durationMinutes: typeof trial.duration_minutes === "number" ? trial.duration_minutes : null,
+          format: typeof trial.format === "string" ? trial.format : null,
+          municipality: typeof trial.municipality === "string" ? trial.municipality : null,
+          cost: typeof trial.cost === "string" ? trial.cost : null,
+          sourceUrl: typeof trial.source_url === "string" ? trial.source_url : null,
+          organization: trial.organization && typeof trial.organization === "object" ? trial.organization : null,
+        }];
+      });
     }
     const selected = new Set(payload.hypotheses.map(item => item.catalogProfessionId));
     for (const profession of catalog.professions ?? []) {

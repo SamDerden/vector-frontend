@@ -17,6 +17,9 @@ export async function GET() {
     await query("SELECT 1");
     return NextResponse.json({
       status: "ok",
+      revision: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+      sessionOwnership: process.env.NODE_ENV === "production" || process.env.SESSION_PROOF_ENFORCED === "true",
+      generationWorker: process.env.GENERATION_WORKER_ENABLED === "true",
       database: "connected",
       service: "professional-navigator-api",
       aiConfigured: aiConfigured(),
@@ -24,7 +27,7 @@ export async function GET() {
         sessionProofEnforced: sessionProofEnforced(),
         embeddingsConfigured: Boolean(process.env.LLM_EMBEDDINGS_MODEL),
         generationWorker: "external-process",
-        rateLimit: "per-process",
+        rateLimit: "database-budgets-and-per-process",
       },
     });
   } catch (error) {
@@ -39,7 +42,7 @@ export async function GET() {
           sessionProofEnforced: sessionProofEnforced(),
           embeddingsConfigured: Boolean(process.env.LLM_EMBEDDINGS_MODEL),
           generationWorker: "external-process",
-          rateLimit: "per-process",
+          rateLimit: "database-budgets-and-per-process",
         },
       },
       { status: 503 }

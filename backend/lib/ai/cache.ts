@@ -7,7 +7,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 60 * 1000; // One hour; never reuse an unbounded fallback.
 let clock = (): number => Date.now();
 
 export function setCacheClock(next: () => number): void {

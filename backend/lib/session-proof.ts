@@ -5,8 +5,9 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
  * The public UUID is a locator, never an authorization credential.
  * Do not put this proof in localStorage, URLs, logs, or JSON responses.
  *
- * Enforcement is controlled by SESSION_PROOF_ENFORCED. Do not enable it
- * until existing sessions are migrated and end-to-end tests pass.
+ * Enforcement follows origin/main: production, or SESSION_PROOF_ENFORCED=true.
+ * Do not turn the flag on until existing sessions are migrated and browser
+ * checks pass. Production already follows main's ownership gate.
  */
 const PROOF_VERSION = "v1";
 const PROOF_BYTES = 32;
@@ -70,7 +71,7 @@ export function sessionProofCookieOptions(isProduction: boolean, mode: "demo" | 
 }
 
 export function sessionProofEnforced(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.SESSION_PROOF_ENFORCED === "true";
+  return env.NODE_ENV === "production" || env.SESSION_PROOF_ENFORCED === "true";
 }
 
 /**

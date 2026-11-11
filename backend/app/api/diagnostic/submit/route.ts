@@ -8,7 +8,7 @@ import {
 import { isMissingSchemaError, pool } from "@/lib/db";
 import { handleError, jsonError, rateLimited } from "@/lib/http";
 import { diagnosticSchema } from "@/lib/schemas";
-import { authorizeSessionOwnership, loadLiveSession, readSessionId } from "@/lib/session";
+import { requireExistingSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -18,9 +18,13 @@ const requestBodySchema = diagnosticSchema.omit({
 
 export async function POST(request: NextRequest) {
   try {
-    const header = readSessionId(request);
+    const header = await requireExistingSession(request);
     if ("error" in header) {
-      return header.error;
+      const failure = header.error;
+      if (!failure || failure.status === 404) {
+        return jsonError("Session not found. Select a track first.", 404);
+      }
+      return failure;
     }
 
     const parsed = requestBodySchema.safeParse(await request.json());
@@ -30,13 +34,6 @@ export async function POST(request: NextRequest) {
 
     const { answers, clarificationAnswers } = parsed.data;
     const validSessionId = header.sessionId;
-    const denied = authorizeSessionOwnership(request, validSessionId);
-    if (denied) return denied;
-    const live = await loadLiveSession(validSessionId);
-    if ("error" in live && live.error) {
-      if (live.error.status === 404) return jsonError("Session not found. Select a track first.", 404);
-      return live.error;
-    }
     const limited = await abuseGuard.guardWrite(validSessionId);
     if (!limited.ok) return rateLimited(limited.retryAfterMs);
 

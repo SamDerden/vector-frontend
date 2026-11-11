@@ -234,7 +234,7 @@ test("polling timeout and an HTML 502 keep the same request id", async () => {
     const timedOut = readGenerationRequest({ mode: "own" }, store);
     assert.equal(timedOut?.state, "open");
     globalThis.fetch = async (url) => {
-      if (String(url).endsWith("/api/recommendations/generate")) return new Response("<html>bad gateway</html>", { status: 502 });
+      if (String(url).endsWith("/api/recommendations/generate") || String(url).includes("/api/recommendations/jobs/")) return new Response("<html>bad gateway</html>", { status: 502 });
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     };
     await assert.rejects(
@@ -366,4 +366,18 @@ test("a missing generation schema does not look like a finished recommendation",
   });
   assert.equal(restored, null);
   assert.equal(calls.some((path) => path.endsWith("/api/recommendations/generate")), false);
+});
+
+test("retrying an open generation restores it without submitting another diagnostic", async () => {
+  const requestId = '77777777-7777-4777-8777-777777777777';
+  const store = storage([['X-Session-ID', OWN], ['vector-generation-request-own', JSON.stringify({requestId,state:'open'})]]);
+  const restore = install(store);
+  const calls: string[] = [];
+  try {
+    const saved = await generateDemoWithBackend({grade:7,track:'explore',diagnosticAnswers:[{questionId:'q1',answer:'техника'}],clarificationAnswers:six,storage:store,
+      fetchImpl: async (url,init) => { calls.push(String(url)); assert.notEqual(init?.method,'POST'); return new Response(JSON.stringify({status:'generated',summary:'Сохранено',recommendationId:requestId}),{status:200}); }});
+    assert.equal(saved.result.summary,'Сохранено');
+    assert.ok(calls.every(url=>url.includes('/jobs/')));
+    assert.equal(readGenerationRequest({mode:'own'},store)?.state,'settled');
+  } finally { restore(); }
 });
