@@ -278,7 +278,7 @@ test("a lease that is still valid for PostgreSQL is not stolen by the worker", a
   const worked = await runGenerationOnce(deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }), concurrency: 1 });
+  }));
   assert.equal(worked, false);
   assert.equal(calls, 0);
   assert.equal(store.jobs()[0].locked_by, "api-request");
@@ -301,7 +301,7 @@ test("two workers do not claim the same job", async () => {
   const second = await runGenerationOnce(deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }, "worker-b"), concurrency: 1 });
+  }, "worker-b"));
   assert.equal(second, false);
   assert.equal(calls, 0);
   store.releaseCommit();
@@ -323,7 +323,7 @@ test("an expired running job is claimed and its lease is renewed", async () => {
     await new Promise((resolve) => setTimeout(resolve, 80));
     seenLease = String(store.jobs()[0].locked_until);
     return { ok: true, status: 201, body: {} };
-  }), concurrency: 1 });
+  }));
   assert.equal(worked, true);
   assert.equal(store.renewals() > 0, true);
   assert.notEqual(seenLease, "2026-11-10T02:00:00.000Z");
@@ -339,7 +339,7 @@ test("a saved recommendation is attached without another generation", async () =
   const worked = await runGenerationOnce(deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }), concurrency: 1 });
+  }));
   assert.equal(worked, true);
   assert.equal(calls, 0);
   assert.equal(store.jobs()[0].status, "completed");
@@ -392,11 +392,11 @@ test("input mismatch is not retried", async () => {
   await runGenerationOnce(deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }), concurrency: 1 });
+  }));
   await runGenerationOnce(deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }), concurrency: 1 });
+  }));
   assert.equal(calls, 0);
   assert.equal(store.jobs()[0].status, "failed");
   assert.equal(store.jobs()[0].error_code, "input_unavailable");
