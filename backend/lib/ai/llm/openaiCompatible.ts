@@ -1,4 +1,5 @@
 import axios from "axios";
+import { boundedAttemptTimeoutMs } from "./timeout-budget";
 import type {
   ChatMessage,
   ChatResponse,
@@ -80,11 +81,9 @@ export class OpenAICompatibleClient implements LLMClient {
       if (remainingBudget <= 0) break;
 
       // A zero Axios timeout disables timeouts entirely. Always enforce the remaining deadline.
-      const currentTimeout = Math.max(1, Math.min(
-        opts.timeoutMs > 0 ? opts.timeoutMs : llmConfig.attempt_timeout_ms,
-        llmConfig.attempt_timeout_ms,
-        remainingBudget
-      ));
+      const currentTimeout = boundedAttemptTimeoutMs(
+        opts.timeoutMs, llmConfig.attempt_timeout_ms, remainingBudget
+      );
 
       const attemptStartedAt = Date.now();
       try {
