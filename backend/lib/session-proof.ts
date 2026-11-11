@@ -59,13 +59,13 @@ export function sessionProofCookieName(sessionId: string): string {
   return `vector_session_proof_${sessionId.toLowerCase().replace(/-/g, "")}`;
 }
 
-export function sessionProofCookieOptions(isProduction: boolean) {
+export function sessionProofCookieOptions(isProduction: boolean, mode: "demo" | "own" = "own") {
   return {
     httpOnly: true as const,
     secure: isProduction,
     sameSite: "strict" as const,
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    ...(mode === "own" ? { maxAge: 60 * 60 * 24 * 7 } : {}),
   };
 }
 
