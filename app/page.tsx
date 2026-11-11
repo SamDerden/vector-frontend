@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from "react";
 import Image from "next/image";
 import PrimaryExperience from "./PrimaryExperience";
+import { browserStorage, readGenerationRequest } from "@/lib/session-store";
 import {catalogPrograms} from "@/lib/catalog-program-types";
 import {catalogSkillNames} from "@/lib/catalog-skill-names";
 
@@ -30,7 +31,7 @@ export default function Home(){
  useEffect(()=>{if(contextReady)sessionStorage.setItem("vector-active-context",JSON.stringify({mode,grade,studentId:demoSelected}))},[contextReady,mode,grade,demoSelected]);
  const generationPoll=useRef<AbortController|null>(null);
  useEffect(()=>()=>generationPoll.current?.abort(),[]);
- useEffect(()=>{if(!contextReady)return;const scope=mode==="demo"?{mode:"demo" as const,studentId:demoSelected}:{mode:"own" as const};const controller=new AbortController();generationPoll.current=controller;void resumeStoredGeneration(scope,{signal:controller.signal}).then(restored=>{if(controller.signal.aborted)return;const screen=generationScreenFromResume(restored,showsProfessions(grade));setDemoAiNotice(screen.notice);setDemoAiError(screen.error);setDemoAiResult(screen.result);setResult(screen.result);if(screen.view){setSelectedProfessionId(null);setView(screen.view)}}).catch(()=>{});return()=>controller.abort()},[contextReady,mode,demoSelected,grade]);
+ useEffect(()=>{if(!contextReady)return;const scope=mode==="demo"?{mode:"demo" as const,studentId:demoSelected}:{mode:"own" as const};const controller=new AbortController();generationPoll.current=controller;const pending=readGenerationRequest(scope,browserStorage(scope));if(pending?.state==="open"){setView("analysis");setDemoAiBusy(true);setDemoAiError("");}void resumeStoredGeneration(scope,{signal:controller.signal}).then(restored=>{if(controller.signal.aborted)return;const screen=generationScreenFromResume(restored,showsProfessions(grade));setDemoAiBusy(false);setDemoAiNotice(screen.notice);setDemoAiError(screen.error);setDemoAiResult(screen.result);setResult(screen.result);if(screen.view){setSelectedProfessionId(null);setView(screen.view)}}).catch(()=>{});return()=>controller.abort()},[contextReady,mode,demoSelected,grade]);
  useEffect(()=>{void fetchDemoStudents().then(setDossiers).catch(e=>setError(e instanceof Error?e.message:"Не удалось загрузить анкеты"))},[]);
   useEffect(()=>{let active=true;setClarifications([]);void fetchClarificationQuestions(grade).then(qs=>{if(active)setClarifications(qs)}).catch(e=>{if(active)setError(e instanceof Error?e.message:"Не удалось загрузить уточняющие вопросы")});return()=>{active=false}},[grade]);
  async function start(){setBusy(true);setError("");try{
