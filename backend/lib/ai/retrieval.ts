@@ -1,7 +1,7 @@
 // lib/ai/retrieval.ts
 import fs from "node:fs/promises";
 import { Dossier } from "./dossier";
-import ragConfig from "@/config/rag.config.json";
+import ragConfig from "@/config/rag.config.json" with { type: "json" };
 import axios from "axios";
 import { embeddingVectorsUsable, readRecordedEmbeddingModel } from "./index-contract";
 import { gatewayEndpoint, readEmbeddingsGateway } from "./gateway-env";
