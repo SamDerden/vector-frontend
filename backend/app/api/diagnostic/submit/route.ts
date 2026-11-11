@@ -7,7 +7,7 @@ import {
 import { isMissingSchemaError, pool, query } from "@/lib/db";
 import { handleError, jsonError } from "@/lib/http";
 import { diagnosticSchema } from "@/lib/schemas";
-import { readSessionId } from "@/lib/session";
+import { requireExistingSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ const requestBodySchema = diagnosticSchema.omit({
 
 export async function POST(request: NextRequest) {
   try {
-    const header = readSessionId(request);
+    const header = await requireExistingSession(request);
     if ("error" in header) {
       return header.error;
     }
@@ -35,14 +35,6 @@ export async function POST(request: NextRequest) {
       if (clarificationErrors.length > 0) {
         return jsonError("Invalid clarification answers", 422, clarificationErrors);
       }
-    }
-
-    const session = await query("SELECT id FROM sessions WHERE id = $1", [
-      validSessionId,
-    ]);
-
-    if (session.rowCount === 0) {
-      return jsonError("Session not found. Select a track first.", 404);
     }
 
     const client = await pool.connect();
