@@ -8,8 +8,8 @@
     "5-8": 1500,
     "9-11": 1500
   },
-  "total_deadline_ms": 90000,
-  "attempt_timeout_ms": 60000,
+  "total_deadline_ms": 45000,
+  "attempt_timeout_ms": 30000,
   "circuit_breaker": {
     "failure_threshold": 2,
     "cooldown_ms": 60000
