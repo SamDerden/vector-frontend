@@ -8,6 +8,7 @@ const dossier = {
   warnings: [],
 };
 const ctx = {
+  tier: "9-11",
   dossierRefs: new Set(["A1","A2","A3"]),
   answersMap: {},
   candidatesMap: {},
