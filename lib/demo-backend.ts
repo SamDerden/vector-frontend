@@ -227,7 +227,7 @@ export async function generateDemoWithBackend(input: {
   const storage = input.storage ?? browserStorage(scope);
   const fetchImpl = input.fetchImpl ?? fetch;
   const requestId = openGenerationRequest(scope, storage);
-  await request("/api/track/select", session, {trackType:input.dossier?"explore":input.track,schoolGrade:input.dossier?.grade??input.grade});
+  await request("/api/track/select", session, {trackType:input.dossier?"explore":input.track,schoolGrade:input.dossier?.grade??input.grade,...(input.dossier ? { demoStudentId: input.dossier.studentId } : {})});
   const answers = input.dossier?.answers.map(({ questionId, answer }) => ({ questionId, answer }))
     ?? input.diagnosticAnswers
     ?? [];
