@@ -14,7 +14,13 @@ import {
   FAIL_JOB_SQL,
   KEEP_LEASE_SQL,
   completeGenerationJob,
+  generationInputHash,
 } from "../lib/generation-jobs.ts";
+import { saveEducationRoute } from "../lib/education-route.ts";
+import { consumeLimit, CapacityError } from "../lib/request-limits.ts";
+import { executeTrackSelect } from "../lib/track-select.ts";
+import { runGenerationOnce } from "../lib/generation-worker.ts";
+import { issueSessionProof, sessionProofCookieName } from "../lib/session-proof.ts";
 import { KEYED_RECOMMENDATION_INSERT_SQL } from "../lib/sofi-generate.ts";
 import {
   WORKER_ATTACH_SQL,
@@ -78,6 +84,11 @@ function recommendationParams(sessionId, jobId) {
     jobId,
   ];
 }
+
+test.after(async () => {
+  const { getPool } = await import("../lib/db.ts");
+  await getPool().end();
+});
 
 test("schema constraints, foreign keys, and a rolled-back write", async () => {
   const pool = await openStand();
@@ -359,6 +370,288 @@ test("HTTP job and session routes restore only the owning session", async () => 
     const restoredBody = await restored.json();
     assert.equal(restoredBody.recommendation.recommendationId, saved.rows[0].id);
     assert.equal("activeJob" in restoredBody, false);
+  } finally {
+    await pool.end();
+  }
+});
+
+test("migrations 008-011 keep routes, expiry, budgets and journey steps", async () => {
+  const pool = await openStand();
+  const sessionId = id("000000000901");
+  const otherId = id("000000000902");
+  try {
+    const applied = await pool.query("SELECT filename FROM schema_migrations ORDER BY filename");
+    assert.deepEqual(applied.rows.map((row) => row.filename), [
+      "001_initial_schema.sql",
+      "002_catalog_extension.sql",
+      "003_clarifications_and_pathways.sql",
+      "004_sofi_ai.sql",
+      "005_hybrid_professions.sql",
+      "006_hybrid_catalog.sql",
+      "007_generation_jobs.sql",
+      "008_education_routes.sql",
+      "009_session_lifetime.sql",
+      "010_request_budgets.sql",
+      "011_reflection_journey.sql",
+    ]);
+    const catalog = await pool.query(
+      `SELECT
+         (SELECT count(*)::int FROM professions) AS professions,
+         (SELECT count(*)::int FROM education_programs) AS programs,
+         (SELECT count(*)::int FROM organizations) AS organizations,
+         (SELECT count(*)::int FROM professions WHERE graph_profession_id IS NOT NULL) AS linked_professions`
+    );
+    assert.equal(catalog.rows[0].professions, 0);
+    assert.equal(catalog.rows[0].programs, 0);
+    assert.equal(catalog.rows[0].organizations, 0);
+    assert.equal(catalog.rows[0].linked_professions, 0);
+
+    await session(pool, sessionId);
+    await session(pool, otherId);
+    const created = await saveEducationRoute(pool.query.bind(pool), sessionId, {
+      professionKey: "none",
+      completed: [0, 1],
+      saved: ["prog_001"],
+      version: null,
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.route?.version, 1);
+    const updated = await saveEducationRoute(pool.query.bind(pool), sessionId, {
+      professionKey: "none",
+      completed: [0, 1, 2],
+      saved: ["prog_001"],
+      version: 1,
+    });
+    assert.equal(updated.status, 200);
+    assert.equal(updated.route?.version, 2);
+    const stale = await saveEducationRoute(pool.query.bind(pool), sessionId, {
+      professionKey: "none",
+      completed: [4],
+      saved: [],
+      version: 1,
+    });
+    assert.equal(stale.status, 409);
+    assert.deepEqual(stale.route?.completed, [0, 1, 2]);
+    const hidden = await pool.query(
+      "SELECT count(*)::int AS n FROM education_routes WHERE session_id = $1",
+      [otherId]
+    );
+    assert.equal(hidden.rows[0].n, 0);
+    await assert.rejects(
+      () => pool.query(
+        `INSERT INTO education_routes (session_id, profession_key, completed, saved_ids)
+         VALUES ($1, 'none', '{}', '{}')`,
+        [sessionId]
+      ),
+      (error) => error && error.code === "23505"
+    );
+
+    await pool.query(
+      "UPDATE sessions SET session_mode = 'own', expires_at = now() - interval '1 hour' WHERE id = $1",
+      [sessionId]
+    );
+    const expired = await pool.query(
+      "SELECT (expires_at IS NOT NULL AND expires_at <= now()) AS expired FROM sessions WHERE id = $1",
+      [sessionId]
+    );
+    assert.equal(expired.rows[0].expired, true);
+    await pool.query("UPDATE sessions SET expires_at = NULL WHERE id = $1", [otherId]);
+    const legacy = await pool.query(
+      `SELECT count(*)::int AS n
+       FROM sessions
+       WHERE id = $1 AND expires_at IS NOT NULL AND expires_at <= now()`,
+      [otherId]
+    );
+    assert.equal(legacy.rows[0].n, 0);
+
+    const budgetKey = "stand:budget:000000000901";
+    const decisions = await Promise.allSettled([
+      consumeLimit(pool.query.bind(pool), budgetKey, 60, 2),
+      consumeLimit(pool.query.bind(pool), budgetKey, 60, 2),
+      consumeLimit(pool.query.bind(pool), budgetKey, 60, 2),
+    ]);
+    assert.equal(decisions.filter((item) => item.status === "fulfilled").length, 2);
+    assert.equal(decisions.filter((item) => item.status === "rejected" && item.reason instanceof CapacityError).length, 1);
+    const used = await pool.query("SELECT used FROM request_budgets WHERE key = $1", [budgetKey]);
+    assert.equal(used.rows[0].used, 2);
+    await pool.query("DELETE FROM request_budgets WHERE key = $1", [budgetKey]);
+
+    await pool.query("INSERT INTO profiles (session_id, school_grade) VALUES ($1, 3)", [otherId]);
+    const reflection = await pool.query(
+      `INSERT INTO reflections (session_id, rating, comment, journey_step)
+       VALUES ($1, 'useful', 'synthetic-stand-reflection', 4)
+       RETURNING journey_step`,
+      [otherId]
+    );
+    assert.equal(reflection.rows[0].journey_step, 4);
+    await assert.rejects(
+      () => pool.query(
+        `INSERT INTO reflections (session_id, rating, journey_step)
+         VALUES ($1, 'useful', 5)`,
+        [otherId]
+      ),
+      (error) => error && error.code === "23514"
+    );
+  } finally {
+    await pool.end();
+  }
+});
+
+test("session proof, expiry and reflection handlers stay on the stand", async () => {
+  const pool = await openStand();
+  const owner = id("000000000a01");
+  const expiredId = id("000000000a02");
+  const previousFlag = process.env.SESSION_PROOF_ENFORCED;
+  const previousSecret = process.env.SESSION_PROOF_SECRET;
+  try {
+    await session(pool, expiredId);
+    await pool.query(
+      "UPDATE sessions SET session_mode = 'demo', expires_at = now() - interval '2 hours' WHERE id = $1",
+      [expiredId]
+    );
+    const { NextRequest } = await import("next/server");
+    const sessionRoute = await import("../app/api/session/route.ts");
+    const reflectionRoute = await import("../app/api/reflection/route.ts");
+    const trackRoute = await import("../app/api/track/select/route.ts");
+    const call = (sessionId: string, path: string, cookie?: string) => new NextRequest(`http://127.0.0.1:55432${path}`, {
+      headers: {
+        "X-Session-ID": sessionId,
+        ...(cookie ? { cookie } : {}),
+      },
+    });
+    const expired = await sessionRoute.GET(call(expiredId, "/api/session"));
+    assert.equal(expired.status, 410);
+
+    process.env.SESSION_PROOF_SECRET = "s".repeat(32);
+    process.env.SESSION_PROOF_ENFORCED = "true";
+    const created = await trackRoute.POST(new NextRequest("http://127.0.0.1:55432/api/track/select", {
+      method: "POST",
+      headers: { "X-Session-ID": owner, "content-type": "application/json" },
+      body: JSON.stringify({ trackType: "explore" }),
+    }));
+    assert.equal(created.status, 200);
+    const proof = created.cookies.get(sessionProofCookieName(owner))?.value;
+    assert.equal(typeof proof, "string");
+    assert.equal(issueSessionProof.length > 0, true);
+    const denied = await sessionRoute.GET(call(owner, "/api/session"));
+    assert.equal(denied.status, 403);
+    const allowed = await sessionRoute.GET(call(owner, "/api/session", `${sessionProofCookieName(owner)}=${proof}`));
+    assert.equal(allowed.status, 200);
+
+    process.env.SESSION_PROOF_ENFORCED = "false";
+    await pool.query("INSERT INTO profiles (session_id, school_grade) VALUES ($1, 3)", [owner]);
+    const saved = await reflectionRoute.POST(new NextRequest("http://127.0.0.1:55432/api/reflection", {
+      method: "POST",
+      headers: { "X-Session-ID": owner, "content-type": "application/json" },
+      body: JSON.stringify({ rating: "useful", stage: "final", comment: "synthetic-stand-final" }),
+    }));
+    assert.equal(saved.status, 201);
+    const body = await saved.json();
+    assert.equal(body.journeyStep, 4);
+    assert.equal(body.stage, "final");
+    assert.equal(body.ageTier, "1-4");
+    const listed = await reflectionRoute.GET(call(owner, "/api/reflection"));
+    const listedBody = await listed.json();
+    assert.equal(listedBody.data[0].journeyStep, 4);
+    assert.equal(listedBody.data[0].stage, "final");
+  } finally {
+    if (previousFlag === undefined) delete process.env.SESSION_PROOF_ENFORCED;
+    else process.env.SESSION_PROOF_ENFORCED = previousFlag;
+    if (previousSecret === undefined) delete process.env.SESSION_PROOF_SECRET;
+    else process.env.SESSION_PROOF_SECRET = previousSecret;
+    await pool.end();
+  }
+});
+
+test("track mode conflict and a mock worker recover one recommendation", async () => {
+  const pool = await openStand();
+  const sessionId = id("000000000b01");
+  const requestId = id("000000000b02");
+  try {
+    const first = await executeTrackSelect({
+      sessionId,
+      body: { trackType: "explore" },
+      query: pool.query.bind(pool),
+    });
+    assert.equal(first.ok, true);
+    const conflict = await executeTrackSelect({
+      sessionId,
+      body: { trackType: "explore", demoStudentId: 1 },
+      query: pool.query.bind(pool),
+    });
+    assert.equal(conflict.ok, false);
+    if (conflict.ok) return;
+    assert.equal(conflict.status, 409);
+
+    const standSnapshot = JSON.parse(snapshot);
+    const standHash = generationInputHash(standSnapshot);
+    const claimed = await pool.query(CLAIM_JOB_SQL, [sessionId, requestId, standHash, snapshot]);
+    const jobId = String(claimed.rows[0].id);
+    await pool.query("UPDATE generation_jobs SET locked_until = $2 WHERE id = $1", [jobId, PAST]);
+    let pipelineCalls = 0;
+    let generateCalls = 0;
+    const deps = {
+      query: (sql: string, params?: unknown[]) => pool.query(sql, params),
+      connect: () => pool.connect(),
+      pipeline: async () => {
+        pipelineCalls += 1;
+        throw new Error("real AI pipeline must not run");
+      },
+      generate: async ({ job, deps: workerDeps }: {
+        job: { id: string; sessionId: string };
+        deps: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> };
+      }) => {
+        generateCalls += 1;
+        const saved = await workerDeps.query(KEYED_RECOMMENDATION_INSERT_SQL, recommendationParams(job.sessionId, job.id));
+        await completeGenerationJob(workerDeps.query, {
+          jobId: job.id,
+          sessionId: job.sessionId,
+          recommendationId: String(saved.rows[0].id),
+          stageTimings: {},
+        });
+        return { ok: true as const, status: 201 as const, body: {} };
+      },
+    };
+    assert.equal(await runGenerationOnce(deps), true);
+    assert.equal(generateCalls, 1);
+    assert.equal(pipelineCalls, 0);
+    assert.equal(await runGenerationOnce(deps), false);
+    assert.equal(generateCalls, 1);
+    const saved = await pool.query("SELECT count(*)::int AS n FROM recommendations WHERE generation_job_id = $1", [jobId]);
+    assert.equal(saved.rows[0].n, 1);
+    const finished = await pool.query("SELECT status FROM generation_jobs WHERE id = $1", [jobId]);
+    assert.equal(finished.rows[0].status, "completed");
+
+    const interrupted = id("000000000b03");
+    const crashed = await pool.query(CLAIM_JOB_SQL, [sessionId, interrupted, standHash, snapshot]);
+    const crashedId = String(crashed.rows[0].id);
+    await pool.query(KEYED_RECOMMENDATION_INSERT_SQL, recommendationParams(sessionId, crashedId));
+    await pool.query(
+      "UPDATE generation_jobs SET recommendation_id = NULL, locked_until = $2, status = 'running' WHERE id = $1",
+      [crashedId, PAST]
+    );
+    assert.equal(await runGenerationOnce(deps), true);
+    assert.equal(generateCalls, 1);
+    const recovered = await pool.query(
+      "SELECT status, (SELECT count(*)::int FROM recommendations WHERE generation_job_id = $1) AS n FROM generation_jobs WHERE id = $1",
+      [crashedId]
+    );
+    assert.equal(recovered.rows[0].status, "completed");
+    assert.equal(recovered.rows[0].n, 1);
+
+    await pool.query(
+      `INSERT INTO generation_jobs (session_id, client_request_id, input_hash, status, attempt_count)
+       VALUES ($1, $2, 'hash', 'pending', 3)`,
+      [sessionId, id("000000000b04")]
+    );
+    assert.equal(await runGenerationOnce(deps), false);
+    assert.equal(generateCalls, 1);
+    const exhausted = await pool.query(
+      "SELECT status, error_code FROM generation_jobs WHERE client_request_id = $1",
+      [id("000000000b04")]
+    );
+    assert.equal(exhausted.rows[0].status, "failed");
+    assert.equal(exhausted.rows[0].error_code, "attempts_exhausted");
   } finally {
     await pool.end();
   }
