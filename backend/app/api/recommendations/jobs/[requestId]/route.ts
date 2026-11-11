@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, query } from "@/lib/db";
 import { parseIdempotencyKey, publicErrorCode, publicJobAccess, READ_JOB_SQL, recoverInactiveGenerationJob, type GenerationJob } from "@/lib/generation-jobs";
 import { LINKED_RECOMMENDATION_SQL } from "@/lib/sofi-generate";
-import { handleError, jsonError } from "@/lib/http";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
 import { savedRecommendationBody } from "@/lib/recommendation-view";
 import { requireExistingSession } from "@/lib/session";
 
@@ -50,6 +51,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireExistingSession(request);
     if ("error" in session) return session.error;
+    const limited = await abuseGuard.guardRead(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
     const { requestId: rawRequestId } = await context.params;
     const parsed = parseIdempotencyKey(rawRequestId);
     if (!parsed.ok || !parsed.key) return jsonError("Generation job not found", 404);

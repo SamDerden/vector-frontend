@@ -24,6 +24,9 @@ function localFile(specifier, context) {
 }
 
 export async function resolve(specifier, context, nextResolve) {
+  if (specifier === "next/server") {
+    return nextResolve("next/server.js", context);
+  }
   const file = localFile(specifier, context);
   if (file && (specifier.startsWith("@/") || !path.extname(specifier))) {
     return nextResolve(pathToFileURL(file).href, context);

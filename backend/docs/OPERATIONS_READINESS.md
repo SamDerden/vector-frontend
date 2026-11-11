@@ -1,0 +1,68 @@
+# Эксплуатационная готовность backend
+
+Проверки ниже для администратора стенда. Этот набор изменений не трогал Railway, переменные окружения сервера и боевую базу. Код ownership в production берётся из main: проверка включена, когда `NODE_ENV=production`, даже без `SESSION_PROOF_ENFORCED`. На сервер это не выкатывалось.
+
+## Инцидент: генерация не сохраняется
+
+Один `GET /api/health`. Снять `revision`, `database`, `sessionOwnership`, `generationWorker`, `aiConfigured`. Генерацию не вызывать.
+
+В логах за час посчитать `generation_result` по `httpStatus` и `errorCode`. Искать строку `recommendation persist failed` и `Session ownership is not configured`. Тела ответов и ответы учеников не читать.
+
+Read-only SQL, без персональных колонок:
+
+`SELECT status, count(*) FROM generation_jobs WHERE updated_at > now() - interval '1 hour' GROUP BY status;`
+
+`SELECT key, used FROM request_budgets WHERE key IN ('generate:global', 'ai:global:day');`
+
+`SELECT filename FROM schema_migrations ORDER BY filename;`
+
+Пока эти три показателя не сняты, публичный `502` не считается подтверждённым.
+
+## Включение ownership
+
+Код включает проверку при `NODE_ENV=production` даже без `SESSION_PROOF_ENFORCED`. Перед выкладкой: секрет длиннее 32 байт, браузер ходит на тот же origin, у текущих сессий есть cookie, старые сессии с пустым `expires_at` не удалять. Флаг отдельно не включать, пока этот список не закрыт.
+
+Первый адрес в `X-Forwarded-For` влияет на отдельный in-memory лимит. Клиент может его подменить. Это не граница доверенного прокси и не признак готовности production.
+
+## Health
+
+`GET /api/health` без сессии. `200` и `database: "connected"` значат, что выполнен `SELECT 1`. `503` значит, что база недоступна. `aiConfigured` смотрит только на наличие `AI_API_BASE_URL`, `AI_API_KEY` и `AI_MODEL`. `embeddingsConfigured` смотрит только на наличие `LLM_EMBEDDINGS_MODEL`. Ни то ни другое не вызывает шлюз.
+
+## Worker
+
+API сам worker не запускает. Для дожима задач после обрыва нужен второй процесс из каталога backend:
+
+`npm run worker:generation`
+
+Ему нужны тот же код, что у API, и `DATABASE_URL`. Пока worker не запущен, запрос с ключом всё равно выполняет генерацию внутри API. Worker нужен, чтобы поднять задачу с истёкшей арендой и не создать вторую рекомендацию. Останавливается он остановкой процесса, без удаления строк.
+
+Откат релиза: остановить worker, вернуть предыдущий артефакт API, не выполнять миграции вниз. Миграции 009, `010_request_budgets` и `011_reflection_journey` только добавляют колонки или таблицу бюджета и не удаляют ответы. Номер 010 из main не переименовывался.
+
+## Секреты и логи
+
+`SESSION_PROOF_SECRET` не короче 32 байт и не включается в репозиторий. Флаг `SESSION_PROOF_ENFORCED` не ставить в `true`, пока существующие сессии не проверены отдельно. Новые события пишутся JSON-строкой и вырезают ответы, комментарии, cookie, токены и proof.
+
+## Каталог и база
+
+Источник graph id — `data/catalog.normalized.json`. Сверка:
+
+`node --experimental-strip-types scripts/catalog-integrity.mjs`
+
+Скрипт не открывает базу. SQL в его выводе только `SELECT`. Запускать эти запросы можно на стенде от роли без права записи. Пустые `graph_*` id не заполнять угаданными UUID.
+
+Очистка сессий по умолчанию только считает строки с непустым и уже наступившим `expires_at`. Старые строки с `NULL` не входят в выборку.
+
+`node --experimental-strip-types scripts/cleanup-expired-sessions.mjs`
+
+Удаление требует одновременно `--apply` и `SESSION_CLEANUP_APPLY=yes`. На рабочей базе его не запускать из этого изменения.
+
+## Резервная копия
+
+Перед миграцией 009, 010 или 011 на рабочей базе снять дамп. Восстановление плана — в пустую базу, затем `npm run db:migrate`. Рабочую базу этим пакетом не мигрировать и не чистить. Миграции 001–011 применялись только на изолированном стенде `127.0.0.1:55432`.
+
+## Откат
+
+1. Остановить worker.
+2. Вернуть предыдущий образ API.
+3. Колонки `session_mode`, `expires_at` и `journey_step` можно оставить: старый код их не требует, если не внедрять SQL этого релиза.
+4. Не удалять `reflections`, `recommendations` и ответы диагностики.

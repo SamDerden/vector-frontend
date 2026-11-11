@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, query } from "@/lib/db";
-import { handleError, jsonError } from "@/lib/http";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
+import { presentReflection, REFLECTION_READ_LEGACY_SQL, REFLECTION_READ_SQL } from "@/lib/reflection-plan";
 import {
   fetchLatestRecommendation,
   sessionRecommendationBody,
@@ -17,6 +19,8 @@ export async function GET(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
+    const limited = await abuseGuard.guardRead(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
 
     const sessionRow = await query(
       `SELECT id, track_type, created_at, updated_at
@@ -87,13 +91,15 @@ export async function GET(request: NextRequest) {
       session.sessionId
     );
 
-    const reflections = await query(
-      `SELECT id, recommendation_id, rating, comment, created_at
-       FROM reflections
-       WHERE session_id = $1
-       ORDER BY created_at DESC`,
-      [session.sessionId]
-    );
+    let reflectionRows: Array<Record<string, unknown>> = [];
+    try {
+      const reflections = await query(REFLECTION_READ_SQL, [session.sessionId]);
+      reflectionRows = reflections.rows.map((row) => presentReflection(row));
+    } catch (error) {
+      if (!isMissingSchemaError(error)) throw error;
+      const reflections = await query(REFLECTION_READ_LEGACY_SQL, [session.sessionId]);
+      reflectionRows = reflections.rows;
+    }
 
     let activeJob: { requestId: string; jobStatus: string; retryAfterMs: number } | undefined;
     try {
@@ -148,7 +154,7 @@ export async function GET(request: NextRequest) {
       recommendation: recommendationRow
         ? sessionRecommendationBody(recommendationRow)
         : null,
-      reflections: reflections.rows,
+      reflections: reflectionRows,
       ...(activeJob ? { activeJob } : {}),
     });
   } catch (error) {
