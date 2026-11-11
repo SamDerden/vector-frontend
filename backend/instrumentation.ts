@@ -6,7 +6,8 @@ export async function register() {
     const state = globalThis as typeof globalThis & { vectorWorkerStarted?: boolean };
     if (state.vectorWorkerStarted) return;
     state.vectorWorkerStarted = true;
-    startGenerationWorker({ query: (sql, params) => pool.query(sql, params), connect: () => pool.connect(), pipeline: limitedPipeline,
+    // Keep worker count below the PostgreSQL pool size (10): each generation holds a dedicated AI slot connection.
+    for (let i = 0; i < 8; i++) startGenerationWorker({ query: (sql, params) => pool.query(sql, params), connect: () => pool.connect(), pipeline: limitedPipeline,
       modelName: process.env.LLM_MODEL ?? process.env.AI_MODEL ?? 'sofi' });
   }
 }
