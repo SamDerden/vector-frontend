@@ -105,3 +105,54 @@ test("UI keeps honest offline fallback when AI unavailable",async()=>{
   assert.match(page,/demoAiError/);
   assert.match(page,/demoAiNotice/);
 });
+
+test("409/410 on track selection rotate only the affected session and retry once", async () => {
+  const { generateDemoWithBackend } = await import("../lib/demo-backend.ts");
+  for (const status of [409, 410]) {
+    let selections = 0;
+    const browser = installBrowser({
+      handler: (path) => {
+        if (path.endsWith("/api/track/select")) {
+          selections += 1;
+          return selections === 1
+            ? { status, body: JSON.stringify({ error: "Session needs renewal" }) }
+            : { status: 200, body: JSON.stringify({ ok: true }) };
+        }
+        return responseFor(path);
+      },
+    });
+    try {
+      const result = await generateDemoWithBackend({
+        dossier: dossier(2, 7, [{ questionId: "q1", answer: "design", question: "Interest" }]),
+        grade: 7, track: "explore", clarificationAnswers: six(["1","2","3","4","5","6"]),
+      });
+      assert.equal(result.result.summary, "ok");
+      assert.equal(selections, 2);
+      const tracks = browser.calls.filter(call => call.url.endsWith("/api/track/select"));
+      assert.notEqual(tracks[0].init.headers["X-Session-ID"], tracks[1].init.headers["X-Session-ID"]);
+      assert.equal(browser.calls.filter(call => call.url.endsWith("/api/diagnostic/submit")).length, 1);
+      assert.equal(browser.calls.filter(call => call.url.endsWith("/api/recommendations/generate")).length, 1);
+    } finally { browser.restore(); }
+  }
+});
+
+test("repeated 410 does not trigger unbounded session retries", async () => {
+  const { generateDemoWithBackend } = await import("../lib/demo-backend.ts");
+  const browser = installBrowser({
+    handler: path => path.endsWith("/api/track/select")
+      ? { status: 410, body: JSON.stringify({ error: "Expired" }) }
+      : responseFor(path),
+  });
+  try {
+    await assert.rejects(
+      () => generateDemoWithBackend({
+        grade: 7, track: "explore",
+        diagnosticAnswers: [{ questionId: "q1", answer: "tech" }],
+        clarificationAnswers: six(["1","2","3","4","5","6"]),
+      }),
+      /Expired/
+    );
+    assert.equal(browser.calls.filter(call => call.url.endsWith("/api/track/select")).length, 2);
+    assert.equal(browser.calls.some(call => call.url.endsWith("/api/diagnostic/submit")), false);
+  } finally { browser.restore(); }
+});
