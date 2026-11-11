@@ -480,7 +480,7 @@ export async function enqueueGenerationJob(
       return { kind: "full" };
     }
     const inserted = await client.query(
-      CLAIM_JOB_SQL.replace("'running', 1, 'api-request', now() + interval '${JOB_LOCK}'", "'pending', 0, NULL, NULL"),
+      CLAIM_JOB_SQL.replace("'running', 1, 'api-request', now() + interval '" + JOB_LOCK + "'", "'pending', 0, NULL, NULL"),
       [input.sessionId, input.clientRequestId, input.inputHash, JSON.stringify(input.snapshot)],
     );
     await client.query("COMMIT");
