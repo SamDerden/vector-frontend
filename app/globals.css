@@ -883,3 +883,9 @@
 
 /* Demo student location is part of the original questionnaire metadata. */
 .demo-grid .demo-card .demo-card-city{display:block;font-size:clamp(11px,.95vw,13px);line-height:1.3;color:#596786;font-weight:600;overflow-wrap:anywhere}
+
+/* Calm waiting state while AI is preparing a student's route. */
+.vector-queue-notice{display:flex;align-items:center;justify-content:center;gap:clamp(12px,3vw,28px);margin:18px auto;max-width:760px;padding:clamp(14px,3vw,26px);border:1px solid rgba(78,123,184,.18);border-radius:22px;background:rgba(235,246,255,.65)}
+.vector-queue-notice img{width:clamp(96px,20vw,170px);height:auto;max-height:220px;object-fit:contain;flex-shrink:0}
+.vector-queue-notice p{margin:0;font-size:clamp(15px,1.5vw,19px);line-height:1.55;font-weight:600;color:#344568}
+@media(max-width:540px){.vector-queue-notice{flex-direction:column;text-align:center}.vector-queue-notice img{max-height:150px}}
