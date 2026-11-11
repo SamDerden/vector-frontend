@@ -65,7 +65,7 @@ try {
       await q("UPDATE professions SET external_id=$1 WHERE id=$2",[item.profession_id,titleMatch.rows[0].id]);
       console.log("[Catalog sync] Reconciled existing profession by title:",item.profession_id,"previous external ID:",oldExternal);
     }
-    ids.professions.set(item.profession_id,await upsert(``INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
+    ids.professions.set(item.profession_id,await upsert(`INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
       VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8) ON CONFLICT(external_id) DO UPDATE SET title=EXCLUDED.title,description=EXCLUDED.description,
       industry_id=EXCLUDED.industry_id,riasec=EXCLUDED.riasec,demand_level_region=EXCLUDED.demand_level_region,
       salary_median_region=EXCLUDED.salary_median_region,vacancies_count=EXCLUDED.vacancies_count RETURNING id`,

@@ -5,6 +5,7 @@
  *   npm run test:generation-stand
  */
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -21,6 +22,9 @@ import { consumeLimit, CapacityError } from "../lib/request-limits.ts";
 import { executeTrackSelect } from "../lib/track-select.ts";
 import { runGenerationOnce } from "../lib/generation-worker.ts";
 import { issueSessionProof, sessionProofCookieName } from "../lib/session-proof.ts";
+import { SCHOOL_SAFE_LIMITS, clientKeyFromHeaders, createAbuseGuard } from "../lib/abuse-guard.ts";
+import { redact } from "../lib/observe.ts";
+import { sessionCleanupPlan } from "../lib/session-cleanup.ts";
 import { KEYED_RECOMMENDATION_INSERT_SQL } from "../lib/sofi-generate.ts";
 import {
   WORKER_ATTACH_SQL,
@@ -401,9 +405,9 @@ test("migrations 008-011 keep routes, expiry, budgets and journey steps", async 
          (SELECT count(*)::int FROM organizations) AS organizations,
          (SELECT count(*)::int FROM professions WHERE graph_profession_id IS NOT NULL) AS linked_professions`
     );
-    assert.equal(catalog.rows[0].professions, 0);
-    assert.equal(catalog.rows[0].programs, 0);
-    assert.equal(catalog.rows[0].organizations, 0);
+    assert.equal(catalog.rows[0].professions, 30);
+    assert.equal(catalog.rows[0].programs, 52);
+    assert.equal(catalog.rows[0].organizations, 104);
     assert.equal(catalog.rows[0].linked_professions, 0);
 
     await session(pool, sessionId);
@@ -652,6 +656,196 @@ test("track mode conflict and a mock worker recover one recommendation", async (
     );
     assert.equal(exhausted.rows[0].status, "failed");
     assert.equal(exhausted.rows[0].error_code, "attempts_exhausted");
+  } finally {
+    await pool.end();
+  }
+});
+
+function standWorkerEnv() {
+  const env = { ...process.env };
+  delete env.DATABASE_URL;
+  for (const key of Object.keys(env)) {
+    if (/^(AI_|LLM_|OPENAI|GIGACHAT)/i.test(key)) delete env[key];
+  }
+  env.GENERATION_STAND = "isolated";
+  env.GENERATION_STAND_DATABASE_URL = standUrl;
+  return env;
+}
+
+function runStandWorker() {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [
+      "--experimental-strip-types",
+      "--import",
+      "./tests/register-app-alias.mjs",
+      "tests/generation-stand-worker.mjs",
+    ], { env: standWorkerEnv(), cwd: process.cwd() });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("exit", (code) => resolve({ code, stdout, stderr, pid: child.pid }));
+  });
+}
+
+test("approved catalog rows and links match the repository graph", async () => {
+  const pool = await openStand();
+  try {
+    const graph = JSON.parse(readFileSync(new URL("../data/navigator_full_graph.json", import.meta.url), "utf8"));
+    const counts = await pool.query(`
+      SELECT
+        (SELECT count(*)::int FROM professions WHERE external_id = ANY($1::text[])) AS professions,
+        (SELECT count(*)::int FROM education_programs WHERE graph_program_id = ANY($2::text[])) AS programs,
+        (SELECT count(*)::int FROM organizations WHERE graph_organization_id = ANY($3::text[])) AS organizations,
+        (SELECT count(*)::int FROM professional_trials WHERE graph_trial_id = ANY($4::text[])) AS trials,
+        (SELECT count(*)::int FROM program_professions pp
+          WHERE NOT EXISTS (SELECT 1 FROM professions p WHERE p.id = pp.profession_id)) AS broken_programs,
+        (SELECT count(*)::int FROM professions WHERE external_id IS NOT NULL AND graph_profession_id IS NULL) AS professions_without_separate_graph_id
+    `, [
+      graph.professions.map((item) => item.profession_id),
+      graph.education_programs.map((item) => item.program_id),
+      graph.organizations.map((item) => item.organization_id),
+      graph.trials.map((item) => item.trial_id),
+    ]);
+    assert.equal(counts.rows[0].professions, graph.professions.length);
+    assert.equal(counts.rows[0].programs, graph.education_programs.length);
+    assert.equal(counts.rows[0].organizations, graph.organizations.length);
+    assert.equal(counts.rows[0].trials, graph.trials.length);
+    assert.equal(counts.rows[0].broken_programs, 0);
+    assert.equal(counts.rows[0].professions_without_separate_graph_id, graph.professions.length);
+  } finally {
+    await pool.end();
+  }
+});
+
+test("a separate worker process recovers one recommendation without calling AI", async () => {
+  const pool = await openStand();
+  const sessionId = id("000000000c01");
+  const requestId = id("000000000c02");
+  try {
+    await session(pool, sessionId);
+    const standSnapshot = JSON.parse(snapshot);
+    const standHash = generationInputHash(standSnapshot);
+    await pool.query(
+      `INSERT INTO generation_jobs (session_id, client_request_id, input_hash, input_snapshot, status, attempt_count)
+       VALUES ($1, $2, $3, $4::jsonb, 'pending', 0)`,
+      [sessionId, requestId, standHash, snapshot]
+    );
+    const first = await runStandWorker();
+    assert.equal(first.code, 0, first.stderr);
+    const report = JSON.parse(first.stdout.trim().split("\n").at(-1));
+    assert.equal(report.worked, true);
+    assert.equal(report.aiCalls, 0);
+    assert.equal(report.database, "vector_prof_generation_stand");
+    const saved = await pool.query(
+      `SELECT count(*)::int AS n FROM recommendations r
+       JOIN generation_jobs j ON j.id = r.generation_job_id
+       WHERE j.client_request_id = $1`,
+      [requestId]
+    );
+    assert.equal(saved.rows[0].n, 1);
+    const replay = await runStandWorker();
+    assert.equal(replay.code, 0, replay.stderr);
+    const again = await pool.query(
+      `SELECT j.status, count(r.id)::int AS n
+       FROM generation_jobs j
+       LEFT JOIN recommendations r ON r.generation_job_id = j.id
+       WHERE j.client_request_id = $1
+       GROUP BY j.status`,
+      [requestId]
+    );
+    assert.equal(again.rows[0].status, "completed");
+    assert.equal(again.rows[0].n, 1);
+
+    const interrupted = id("000000000c03");
+    await pool.query(
+      `INSERT INTO generation_jobs (session_id, client_request_id, input_hash, input_snapshot, status, attempt_count)
+       VALUES ($1, $2, $3, $4::jsonb, 'pending', 0)`,
+      [sessionId, interrupted, standHash, snapshot]
+    );
+    const killed = spawn(process.execPath, [
+      "--experimental-strip-types",
+      "--import",
+      "./tests/register-app-alias.mjs",
+      "tests/generation-stand-worker.mjs",
+    ], { env: standWorkerEnv(), cwd: process.cwd() });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    killed.kill();
+    await new Promise((resolve) => killed.on("exit", resolve));
+    await pool.query(
+      "UPDATE generation_jobs SET locked_until = $2 WHERE client_request_id = $1 AND status = 'running'",
+      [interrupted, PAST]
+    );
+    const restarted = await runStandWorker();
+    assert.equal(restarted.code, 0, restarted.stderr);
+    const recovered = await pool.query(
+      `SELECT j.status, count(r.id)::int AS n
+       FROM generation_jobs j
+       LEFT JOIN recommendations r ON r.generation_job_id = j.id
+       WHERE j.client_request_id = $1
+       GROUP BY j.status`,
+      [interrupted]
+    );
+    assert.equal(recovered.rows.length, 1);
+    assert.equal(recovered.rows[0].n, 1);
+    assert.equal(recovered.rows[0].status, "completed");
+  } finally {
+    await pool.end();
+  }
+});
+
+test("health, cleanup dry-run, NAT limit, redaction and five local readers", async () => {
+  const pool = await openStand();
+  try {
+    const health = await import("../app/api/health/route.ts");
+    const response = await health.GET();
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.status, "ok");
+    assert.equal(body.database, "connected");
+    assert.equal(typeof body.sessionOwnership, "boolean");
+    assert.equal(body.readiness.rateLimit, "database-budgets-and-per-process");
+
+    const before = await pool.query("SELECT count(*)::int AS n FROM sessions");
+    const plan = sessionCleanupPlan(false);
+    assert.equal(plan.dryRun, true);
+    assert.equal(plan.writes.length, 0);
+    await pool.query(plan.reads[0]);
+    const after = await pool.query("SELECT count(*)::int AS n FROM sessions");
+    assert.equal(after.rows[0].n, before.rows[0].n);
+
+    const guard = createAbuseGuard(SCHOOL_SAFE_LIMITS, false);
+    const key = clientKeyFromHeaders({
+      get: (name) => name.toLowerCase() === "x-forwarded-for" ? "10.8.8.8, 203.0.113.4" : null,
+    });
+    let allowed = 0;
+    for (let index = 0; index < SCHOOL_SAFE_LIMITS.trackPerIp; index += 1) {
+      if ((await guard.guardTrackCreate(key)).ok) allowed += 1;
+    }
+    assert.equal(allowed, 180);
+    assert.equal((await guard.guardTrackCreate(key)).ok, false);
+
+    const safe = redact({
+      answer: "синтетический ответ",
+      authorization: "Bearer stand-token",
+      durationMs: 5,
+    });
+    assert.equal(safe.answer, "[redacted]");
+    assert.equal(safe.authorization, "[redacted]");
+    assert.equal(JSON.stringify(safe).includes("синтетический"), false);
+    assert.equal(JSON.stringify(safe).includes("stand-token"), false);
+
+    const started = Date.now();
+    const readers = await Promise.all(Array.from({ length: 5 }, (_, index) => pool.query("SELECT $1::int AS user_n", [index])));
+    const elapsedMs = Date.now() - started;
+    assert.equal(readers.length, 5);
+    assert.ok(elapsedMs < 2000);
+    const activity = await pool.query(
+      "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database()"
+    );
+    assert.ok(activity.rows[0].n >= 1);
+    console.log(JSON.stringify({ localLoad: { users: 5, elapsedMs, connections: activity.rows[0].n } }));
   } finally {
     await pool.end();
   }
