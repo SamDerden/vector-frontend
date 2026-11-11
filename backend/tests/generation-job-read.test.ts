@@ -25,6 +25,8 @@ type Job = {
 
 const jobs = new Map<string, Job>();
 const updates: string[] = [];
+let savedTrialIds: string[] = [];
+const TRIAL_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 function recommendation() {
   return {
@@ -32,7 +34,7 @@ function recommendation() {
     session_id: SESSION,
     summary: "Сохранено",
     hypotheses: [],
-    trial_ids: [],
+    trial_ids: savedTrialIds,
     next_step: "Дальше",
     pathways: [],
     model_name: "test",
@@ -48,6 +50,7 @@ function recommendation() {
 function seed(partial: Partial<Job>) {
   jobs.clear();
   updates.length = 0;
+  savedTrialIds = [];
   jobs.set(JOB_ID, {
     id: JOB_ID,
     session_id: SESSION,
@@ -92,6 +95,10 @@ globalThis.__securityQuery = async (sql: string, params: unknown[] = []) => {
     const job = [...jobs.values()].find((item) => item.session_id === params[0] && item.client_request_id === params[1]);
     return job ? { rowCount: 1, rows: [job] } : { rowCount: 0, rows: [] };
   }
+  if (sql.includes("FROM professional_trials")) {
+    assert.deepEqual(params, [[TRIAL_ID]]);
+    return { rowCount: 1, rows: [{ id: TRIAL_ID, title: "Профессиональная проба", profession_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }] };
+  }
   if (sql.includes("FROM recommendations")) {
     return String(params[0]) === RECOMMENDATION_ID && params[1] === SESSION
       ? { rowCount: 1, rows: [recommendation()] }
@@ -130,4 +137,15 @@ test("an expired owner can be replaced by the saved recommendation", async () =>
   assert.equal(job?.status, "completed");
   assert.equal(job?.locked_by, null);
   assert.equal(job?.recommendation_id, RECOMMENDATION_ID);
+});
+
+test("completed job returns the same persisted trials as recommendation GET", async () => {
+  seed({ status: "completed", locked_by: null, locked_until: null });
+  savedTrialIds = [TRIAL_ID];
+  const response = await call();
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.trials.length, 1);
+  assert.equal(body.trials[0].id, TRIAL_ID);
+  assert.equal(body.trials[0].title, "Профессиональная проба");
 });
