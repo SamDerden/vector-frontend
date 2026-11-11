@@ -16,6 +16,8 @@ jobs:
           node-version: '22'
       - name: Install backend dependencies
         run: npm install --no-audit --no-fund
+      - name: Check graph internal catalog integrity
+        run: node scripts/check-catalog-integrity.mjs
       - name: Audit Navigator EKB v3 workbook vs graph (read-only)
         run: node scripts/audit-excel-v3-vs-graph.mjs
       - name: Detect active v1 Excel references
