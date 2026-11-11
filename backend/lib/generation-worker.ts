@@ -95,6 +95,23 @@ export type WorkerDeps = GenerateDeps & {
 
 const RENEW_EVERY_MS = 30 * 1000;
 
+export function planWorkerCandidate(input: {
+  status: "pending" | "running" | "completed" | "failed";
+  attemptCount: number;
+  lockedUntilMs: number | null;
+  hasRecommendation: boolean;
+  nowMs: number;
+  maxAttempts?: number;
+}): "attach" | "exhaust" | "claim" | "leave" {
+  const maxAttempts = input.maxAttempts ?? MAX_GENERATION_ATTEMPTS;
+  const leaseOpen = input.lockedUntilMs !== null && input.lockedUntilMs >= input.nowMs;
+  const reclaimable = input.status === "pending" || (input.status === "running" && !leaseOpen);
+  if (!reclaimable) return "leave";
+  if (input.hasRecommendation) return "attach";
+  if (input.attemptCount >= maxAttempts) return "exhaust";
+  return "claim";
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
