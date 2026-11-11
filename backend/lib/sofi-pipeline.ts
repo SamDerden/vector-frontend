@@ -380,7 +380,7 @@ export async function runSofiPipeline(
     const selectedIds = [...new Set(elementary.targets.flatMap(target=>target.activity_ids))].slice(0,3);
     result.interest_tags = mappedTags;
     result.activity_ids = selectedIds;
-    result.warnings = [...new Set([...result.warnings,...elementary.warnings])];
+    result.warnings = [...new Set([...(result.warnings ?? []),...elementary.warnings])];
     if (!mappedTags.length) result.status = "no_match";
   }
   result.generation = {
