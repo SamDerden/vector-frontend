@@ -141,6 +141,11 @@ async function pollGenerationJob(
       headers: { "X-Session-ID": session },
       signal,
     });
+    if (response.status === 410) {
+      const expired = new Error("Session expired") as Error & { status?: number };
+      expired.status = 410;
+      throw expired;
+    }
     const raw = await response.text();
     const { payload, parsedJson } = readPayload(raw);
     if (
@@ -186,6 +191,10 @@ export async function resumeStoredGeneration(
       return await pollGenerationJob(headers["X-Session-ID"], active.requestId, options.signal, fetchImpl);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return null;
+      if (error instanceof Error && (error as Error & { status?: number }).status === 410 && !options.signal?.aborted) {
+        rotateSessionId(scope, storage);
+        return { ok: false, message: "Сессия истекла. Начни анализ заново." };
+      }
       return { ok: false, message: error instanceof Error ? error.message : "Не удалось получить рекомендации." };
     }
   }
@@ -198,6 +207,10 @@ export async function resumeStoredGeneration(
     });
     const jobRaw = await jobResponse.text();
     const job = readPayload(jobRaw);
+    if (jobResponse.status === 410) {
+      if (!options.signal?.aborted) rotateSessionId(scope, storage);
+      return { ok: false, message: "Сессия истекла. Начни анализ заново." };
+    }
     if (jobResponse.status === 502) {
       const presented = presentGeneration(502, job.parsedJson ? job.payload : null, job.parsedJson);
       return { ok: false, message: presented.ok ? "Не удалось собрать рекомендации. Попробуй ещё раз." : presented.message };
