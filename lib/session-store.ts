@@ -103,3 +103,20 @@ export function settleGenerationRequest(scope: SessionScope, storage: SessionSto
   if (!existing) return;
   storage.setItem(requestStorageKey(scope), JSON.stringify({ requestId: existing.requestId, state: "settled" }));
 }
+
+/**
+ * Replace an expired or mode-conflicting session without affecting other
+ * demo pupils or unrelated browser data. A new generation request must not
+ * reuse the idempotency key belonging to the previous session.
+ */
+export function rotateSessionId(
+  scope: SessionScope,
+  storage: SessionStorage,
+  createId: () => string = () => crypto.randomUUID()
+): string {
+  const next = createId();
+  if (!UUID_PATTERN.test(next)) throw new Error("Session id must be a UUID");
+  storage.setItem(sessionStorageKey(scope), next);
+  storage.setItem(requestStorageKey(scope), "");
+  return next;
+}
