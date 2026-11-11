@@ -1,6 +1,6 @@
-import agePolicy from "@/config/age_policy.json";
-import ragConfig from "@/config/rag.config.json";
-import riasecLabels from "@/config/riasec_labels.json";
+import agePolicy from "@/config/age_policy.json" with { type: "json" };
+import ragConfig from "@/config/rag.config.json" with { type: "json" };
+import riasecLabels from "@/config/riasec_labels.json" with { type: "json" };
 import { computeConfidence } from "./confidence";
 
 export interface RawHypothesis {
