@@ -758,7 +758,7 @@ async function finishOwnedGeneration(source: {
     if (junior) {
       const resolved = resolveCatalogActivities(catalog.trials ?? [], payload.activityIds);
       const byId = new Map((catalog.trials ?? []).map(trial => [trial.trial_id, trial]));
-      const estimatedAge = grade + 6;
+      const estimatedAge = prepared.student.school_grade + 6;
       catalogActivities = resolved.flatMap(item => {
         const trial = byId.get(item.id);
         if (!trial) return [];
