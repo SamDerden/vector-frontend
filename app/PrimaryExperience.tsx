@@ -24,6 +24,7 @@ export default function PrimaryExperience({result, grade, scope, notice, onResta
   result: Record<string, unknown> | null; grade: number; scope: SessionScope; notice?: string; onRestart:()=>void
 }) {
   const [stage,setStage]=useState<Stage>("interests");
+  const [hydrated,setHydrated]=useState(false);
   const [selected,setSelected]=useState<string[]>([]);
   const [completed,setCompleted]=useState<string[]>([]);
   const [reflection,setReflection]=useState<Reflection>(initialReflection);
@@ -45,6 +46,7 @@ export default function PrimaryExperience({result, grade, scope, notice, onResta
   const hasCatalogActivities = activityTitles(result?.activities).length>0;
 
   useEffect(()=>{
+    setHydrated(false);
     try {
       const raw=localStorage.getItem(key); if(!raw)return;
       const data=JSON.parse(raw);
@@ -53,9 +55,9 @@ export default function PrimaryExperience({result, grade, scope, notice, onResta
       if(data.reflection && typeof data.reflection==="object")setReflection({...initialReflection,...data.reflection});
       if(["interests","activities","route","reflection","complete"].includes(data.stage))setStage(data.stage);
       if(data.saveState==="saved")setSaveState("saved");
-    }catch{}
+    }catch{}finally{setHydrated(true)}
   },[key]);
-  useEffect(()=>{try{localStorage.setItem(key,JSON.stringify({selected,completed,reflection,stage,saveState}))}catch{}},[key,selected,completed,reflection,stage,saveState]);
+  useEffect(()=>{if(!hydrated)return;try{localStorage.setItem(key,JSON.stringify({selected,completed,reflection,stage,saveState}))}catch{}},[hydrated,key,selected,completed,reflection,stage,saveState]);
 
   const go=(next:Stage)=>{setStage(next);window.scrollTo({top:0,behavior:"smooth"})};
   const chosen=activities.filter(a=>selected.includes(a.id));
