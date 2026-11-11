@@ -11,6 +11,7 @@ import { getFromCache, makeCacheKey, setCache } from "@/lib/ai/cache";
 import { type NormalizedCatalog, type NormalizedProfession } from "@/lib/ai/catalog";
 import { buildDossier } from "@/lib/ai/dossier";
 import { buildFallbackResponse } from "@/lib/ai/fallback";
+import { buildElementaryTargets } from "@/lib/ai/elementary";
 import { generateValidatedResponse } from "@/lib/ai/generate";
 import { OpenAICompatibleClient } from "@/lib/ai/llm/openaiCompatible";
 import { postprocess, type PostprocessContext } from "@/lib/ai/postprocess";
@@ -86,6 +87,8 @@ export async function runSofiPipeline(
   }
 
   const candidates = buildCandidates(catalog, grade);
+  const elementary = tier === "1-4" ? buildElementaryTargets(dossier, catalog) : null;
+  const elementaryActivityIds = new Set(elementary?.targets.flatMap(target=>target.activity_ids) ?? []);
   const industriesMap = Object.fromEntries(
     catalog.industries.map((industry) => [industry.slug, industry.name])
   );
@@ -206,7 +209,7 @@ export async function runSofiPipeline(
             }];
           });
       const juniorActivities = tier === "1-4"
-        ? catalog.trials.filter((trial) => isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))
+        ? catalog.trials.filter((trial) => elementaryActivityIds.has(trial.trial_id) && isTrialEligibleForGrade({ ...trial, trial_type: trial.trial_type ?? null }, grade))
         : [];
       const validationContext: ValidationContext = {
         tier,
@@ -365,6 +368,21 @@ export async function runSofiPipeline(
     }
   }
 
+  // Preserve the ZIP elementary.ts evidence threshold and explicit trial mappings.
+  // The LLM writes age-friendly explanations, not the final catalog ID selection.
+  if (elementary && dossier.answers.length >= agePolicy.min_signal_answers) {
+    const mappedTags = elementary.targets.map(target=>({
+      industry_id:target.industry_id,
+      tag:target.tag,
+      why:"Это направление связано с твоими ответами.",
+      evidence_refs:target.evidence_refs
+    }));
+    const selectedIds = [...new Set(elementary.targets.flatMap(target=>target.activity_ids))].slice(0,3);
+    result.interest_tags = mappedTags;
+    result.activity_ids = selectedIds;
+    result.warnings = [...new Set([...result.warnings,...elementary.warnings])];
+    if (!mappedTags.length) result.status = "no_match";
+  }
   result.generation = {
     mode,
     tier,
