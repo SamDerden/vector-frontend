@@ -69,6 +69,7 @@ function readJson<T>(relativePath: string): T {
 }
 
 let clarificationCache: ClarificationQuestion[] | null = null;
+let primaryClarificationCache: ClarificationQuestion[] | null = null;
 let questionnairesCache: BiletQuestionnaire[] | null = null;
 let mockStudentsCache: MockStudent[] | null = null;
 let graphCache: GraphProfession[] | null | undefined;
@@ -82,6 +83,16 @@ export function getClarificationQuestions(): ClarificationQuestion[] {
     clarificationCache = data.agent_clarification_questions ?? [];
   }
   return clarificationCache;
+}
+
+export function getPrimaryClarificationQuestions(): ClarificationQuestion[] {
+  if (!primaryClarificationCache) {
+    const data = readJson<{ agent_clarification_questions: ClarificationQuestion[] }>(
+      "data/agent_clarification_1-4.json"
+    );
+    primaryClarificationCache = data.agent_clarification_questions ?? [];
+  }
+  return primaryClarificationCache;
 }
 
 export function getBiletQuestionnaires(): BiletQuestionnaire[] {
