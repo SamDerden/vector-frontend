@@ -250,10 +250,14 @@ export async function runGenerationOnce(deps: WorkerDeps): Promise<boolean> {
 
 export function startGenerationWorker(deps: WorkerDeps): () => Promise<void> {
   const abort = new AbortController();
-  const loop = (async () => {
+  // Claim distinct jobs with SKIP LOCKED. The advisory locks in limitedPipeline
+  // remain the global ceiling across API requests and worker replicas.
+  const concurrency = 20;
+  const loops = Array.from({ length: concurrency }, (_, index) => (async () => {
+    const workerDeps = { ...deps, workerId: `${deps.workerId ?? "generation"}-${index}` };
     while (!abort.signal.aborted) {
       try {
-        const worked = await runGenerationOnce(deps);
+        const worked = await runGenerationOnce(workerDeps);
         if (abort.signal.aborted) break;
         if (!worked) await sleep(deps.idleMs ?? 1000, abort.signal);
       } catch (error) {
@@ -262,10 +266,10 @@ export function startGenerationWorker(deps: WorkerDeps): () => Promise<void> {
         await sleep(deps.idleMs ?? 1000, abort.signal);
       }
     }
-  })();
+  })());
   return async () => {
     abort.abort();
-    await loop;
+    await Promise.all(loops);
   };
 }
 
