@@ -681,12 +681,12 @@ async function finishOwnedGeneration(source: {
     }
     const dbCounts = new Map<string, number>();
     for (const row of professions) {
-      const key = row.title.trim().toLocaleLowerCase("ru");
+      const key = (titles.get(row.id) ?? "").trim().toLocaleLowerCase("ru");
       dbCounts.set(key, (dbCounts.get(key) ?? 0) + 1);
     }
     mappingRows = professions.map((row) => {
       if (row.graphProfessionId) return row;
-      const key = row.title.trim().toLocaleLowerCase("ru");
+      const key = (titles.get(row.id) ?? "").trim().toLocaleLowerCase("ru");
       const matches = byTitle.get(key) ?? [];
       return matches.length === 1 && dbCounts.get(key) === 1
         ? { ...row, graphProfessionId: matches[0] }
