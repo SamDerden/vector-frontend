@@ -228,7 +228,19 @@ function createWorld() {
 
   const deps: GenerateDeps = {
     query,
-    connect: async () => ({ query, release() {} }),
+    connect: async () => {
+      const client = {
+        marker: "pg-client",
+        query(this: { marker?: string }, sql: string, params?: unknown[]) {
+          if (this?.marker !== "pg-client") {
+            throw new TypeError("Cannot read properties of undefined (reading 'queryQueue')");
+          }
+          return query(sql, params);
+        },
+        release() {},
+      };
+      return client;
+    },
     pipeline: async (input) => {
       pipelinePrepared = input.prepared;
       pipelineCalls += 1;

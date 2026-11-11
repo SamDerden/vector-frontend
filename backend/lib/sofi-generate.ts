@@ -914,7 +914,7 @@ async function finishOwnedGeneration(source: {
           ...recommendationParams,
           ownedJob.id,
         ]);
-        const completed = await completeOwnedGenerationJob(insertClient.query, {
+        const completed = await completeOwnedGenerationJob((sql, params) => insertClient.query(sql, params), {
           jobId: ownedJob.id,
           sessionId: input.sessionId,
           recommendationId: String(saved.rows[0]?.id ?? ""),
