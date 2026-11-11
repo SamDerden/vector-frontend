@@ -55,7 +55,7 @@ function emptyRetrieval(reason: string) {
     industryScores: {} as Record<string, number>,
     coverageGap: true,
     uncoveredAnswerRefs: [] as string[],
-    mode: "semantic" as const,
+    mode: "lexical" as const,
     warnings: [reason],
   };
 }
@@ -373,6 +373,10 @@ export async function runSofiPipeline(
     configVersion,
     attempts,
   };
-  setCache(cacheKey, result);
+  // Do not cache degraded retrieval-only responses: a transient gateway outage
+  // must not keep masking a recovered LLM or semantic retrieval service.
+  if (mode === "llm" && retrieval.mode === "semantic") {
+    setCache(cacheKey, result);
+  }
   return result;
 }
