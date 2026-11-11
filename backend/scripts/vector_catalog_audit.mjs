@@ -16,7 +16,16 @@ const diff=(table,id,field,excel,json)=>problems.push({table,id,field,excel,json
 const check=(table,source,target,id,fields)=>{const index=new Map(target.map(r=>[norm(r[id]),r]));const seen=new Set();for(const r of source){const k=norm(r[id]);if(seen.has(k))diff(table,k,'duplicate_excel_id',k,null);seen.add(k);const g=index.get(k);if(!g){diff(table,k,'missing_in_graph',r,null);continue}for(const f of fields)if(norm(r[f])!==norm(g[f]))diff(table,k,f,r[f],g[f])}for(const k of index.keys())if(!seen.has(k))diff(table,k,'missing_in_excel',null,index.get(k))};
 const common=(table,source,target,id,exclude=[])=>check(table,source,target,id,Object.keys(source[0]??{}).filter(k=>k!==id&&!exclude.includes(k)));
 common('industry',x.industry,graph.industries,'industry_id');
-common('profession',x.profession,graph.professions,'profession_id',['riasec_R','riasec_I','riasec_A','riasec_S','riasec_E','riasec_C']);
+common('profession',x.profession,graph.professions,'profession_id',['riasec_R','riasec_I','riasec_A','riasec_S','riasec_E','riasec_C','demand_level_region','salary_median_region','vacancies_count']);
+const graphProfessionById=new Map(graph.professions.map(p=>[p.profession_id,p]));
+for(const p of x.profession){
+ const g=graphProfessionById.get(p.profession_id);
+ if(!g)continue;
+ for(const [excelField,jsonField] of [['demand_level_region','demand_level_region'],['salary_median_region','salary_median_rub'],['vacancies_count','vacancies_count']]){
+  if(norm(p[excelField])!==norm(g.current_market_state?.[jsonField]))
+   diff('profession',p.profession_id,excelField,p[excelField],g.current_market_state?.[jsonField]);
+ }
+}
 common('skill',x.skill,graph.skills,'skill_id');
 common('organization',x.organization,graph.organizations,'organization_id');
 common('education_program',x.education_program,graph.education_programs,'program_id',['organization_id']);
