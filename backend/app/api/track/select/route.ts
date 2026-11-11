@@ -21,6 +21,16 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    const demoStudentId =
+      rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
+        ? (rawBody as Record<string, unknown>).demoStudentId
+        : undefined;
+    if (demoStudentId !== undefined &&
+        (!Number.isInteger(demoStudentId) || (demoStudentId as number) < 1 || (demoStudentId as number) > 15)) {
+      return jsonError("Invalid demo student id", 422);
+    }
+    const mode = demoStudentId === undefined ? "own" : "demo";
+
     // Legacy mode remains unchanged until the protected rollout is explicitly enabled.
     if (!sessionProofEnforced()) {
       const outcome = await executeTrackSelect({ sessionId: header.sessionId, body: rawBody, query });
@@ -59,7 +69,7 @@ export async function POST(request: NextRequest) {
         response.cookies.set(
           sessionProofCookieName(header.sessionId),
           proof,
-          sessionProofCookieOptions(process.env.NODE_ENV === "production")
+          sessionProofCookieOptions(process.env.NODE_ENV === "production", mode)
         );
       }
       return response;
