@@ -1,3 +1,4 @@
+import childQuestions from "@/data/agent_clarification_1-4.json";
 import type { Dossier } from "./dossier";
 import type { NormalizedCatalog } from "./catalog";
 import { isTrialEligibleForGrade } from "./age";
@@ -37,6 +38,7 @@ const sourceMappings: Array<[string,string,string]> = [
 ["agent_q1_likes","Разбираться в технике, собирать, чинить, мастерить","tech"],["agent_q1_likes","Ухаживать за животными и растениями, быть на природе","nature"],["agent_q1_likes","Рисовать, писать, придумывать идеи, снимать видео","creative"],["agent_q1_likes","Общаться, помогать другим, учить, поддерживать","help"],["agent_q1_likes","Работать с цифрами, таблицами, анализировать информацию","finance"],["agent_q1_likes","Организовывать процессы, руководить, убеждать","services"],
 ["agent_q3_tasks","Практические: что-то сделать руками, починить, собрать","tech"],["agent_q3_tasks","Аналитические: найти ошибку, изучить данные, построить логику","finance"],["agent_q3_tasks","Творческие: придумать дизайн, написать текст, создать новое","design"],["agent_q3_tasks","Коммуникативные: договориться, убедить, помочь клиенту","services"]
 ];
+const childValuesByLabel = new Map(childQuestions.agent_clarification_questions.flatMap(q=>q.options.map(o=>[q.question_id+"\u0000"+o.label,o.value] as const)));
 const lookup = new Map(sourceMappings.map(([question,label,direction])=>[question+"\u0000"+label,direction]));
 const clarificationValues:Record<string,Record<string,string>>={
  agent_q1_likes:{tech:"tech",nature:"nature",creative:"creative",people:"help",data:"finance",business:"services"},
@@ -51,7 +53,7 @@ export function buildElementaryTargets(dossier:Dossier,catalog:NormalizedCatalog
    // Only answers about interests contribute evidence; logistical constraints do not.
    if(answer.questionnaire==="agent_clarification" && !["agent_q1_likes","agent_q3_tasks"].includes(answer.questionId))continue;
    for(const selected of answer.selected){
-     const direction=lookup.get(answer.questionId+"\u0000"+selected)??clarificationValues[answer.questionId]?.[selected];
+     const direction=lookup.get(answer.questionId+"\u0000"+selected)??clarificationValues[answer.questionId]?.[childValuesByLabel.get(answer.questionId+"\u0000"+selected)??selected];
      if(!direction || !validDirections.has(direction)){warnings.add("unmapped_answer");continue}
      const refs=evidence.get(direction)??[];
      if(!refs.includes(answer.ref))refs.push(answer.ref);
