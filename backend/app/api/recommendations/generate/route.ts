@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { isMissingSchemaError, pool, query } from "@/lib/db";
+import { generationBudgetApplies, parseIdempotencyKey, readGenerationJob } from "@/lib/generation-jobs";
 import { handleError, jsonError } from "@/lib/http";
-import { parseIdempotencyKey } from "@/lib/generation-jobs";
+import { countMetric, logEvent } from "@/lib/observe";
 import { executeGenerate } from "@/lib/sofi-generate";
 import { limitedPipeline } from "@/lib/limited-pipeline";
 import { consumeLimit } from "@/lib/request-limits";
@@ -22,9 +23,15 @@ export async function POST(request: NextRequest) {
     if ("error" in session) {
       return session.error;
     }
-
-    await consumeLimit(query, "generate:global", 60, 120);
-    await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
+    let spendBudget = true;
+    if (idempotency.key) {
+      const existingJob = await readGenerationJob(query, session.sessionId, idempotency.key);
+      spendBudget = generationBudgetApplies(existingJob?.status);
+    }
+    if (spendBudget) {
+      await consumeLimit(query, "generate:global", 60, 120);
+      await consumeLimit(query, "generate:session:" + session.sessionId, 60, 5);
+    }
     let rawBody: unknown = {};
     try {
       const rawText = await request.text();
@@ -36,6 +43,7 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
+    const started = Date.now();
     const outcome = await executeGenerate({
       sessionId: session.sessionId,
       body: rawBody,
@@ -49,11 +57,25 @@ export async function POST(request: NextRequest) {
       },
     });
     if (!outcome.ok) {
+      countMetric(`generation_${outcome.status}`);
+      logEvent("generation_result", {
+        requestId: idempotency.key,
+        httpStatus: outcome.status,
+        errorCode: outcome.details && typeof outcome.details === "object" && "errorCode" in outcome.details
+          ? (outcome.details as { errorCode?: unknown }).errorCode
+          : undefined,
+        durationMs: Date.now() - started,
+      });
       const response = jsonError(outcome.error, outcome.status, outcome.details);
       if (outcome.status === 429) response.headers.set("Retry-After", "60");
       return response;
     }
 
+    logEvent("generation_result", {
+      requestId: idempotency.key,
+      httpStatus: outcome.status,
+      durationMs: Date.now() - started,
+    });
     return NextResponse.json(outcome.body, { status: outcome.status });
   } catch (error) {
     if (isMissingSchemaError(error)) {
