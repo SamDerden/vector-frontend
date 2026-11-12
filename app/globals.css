@@ -906,3 +906,19 @@
  .vector-analysis-screen{overflow:visible}
 }
 .vector-queue-notice img{object-fit:contain;object-position:center;flex-shrink:0}
+
+/* Mobile profession and education cards: image-led hero and compact actions. */
+.vector-profession-hero.vector-trial-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);align-items:center;gap:clamp(16px,3vw,32px);padding:clamp(18px,3vw,32px);min-height:0}
+.vector-profession-hero-copy{min-width:0;align-self:center}
+.vector-profession-hero .vector-trial-title{min-width:0}
+.vector-profession-hero .vector-trial-title .eyebrow{display:block;max-width:100%;line-height:1.5;letter-spacing:.06em}
+.vector-profession-hero .vector-trial-title h1{font-size:clamp(24px,3.2vw,42px);line-height:1.12;overflow-wrap:normal;word-break:normal;hyphens:auto;margin-top:12px}
+.vector-profession-hero .vector-profession-hero-image{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:center;border-radius:22px;box-shadow:0 12px 28px rgba(28,45,90,.12)}
+.vector-program-card-footer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch}
+.vector-program-card-footer .vector-program-link,.vector-program-card-footer .vector-program-soon,.vector-program-card-footer .vector-program-save{box-sizing:border-box;width:100%;min-width:0;min-height:44px;margin:0;padding:11px 12px;border-radius:14px;font-size:13px;line-height:1.3;text-align:center;white-space:normal;overflow-wrap:break-word;display:flex;align-items:center;justify-content:center}
+.vector-program-card-footer .vector-program-link{background:#eef1f7;color:#425375!important;box-shadow:none;font-weight:700}
+.vector-program-card-footer .vector-program-link:hover{background:#e1e7f1;filter:none}
+.vector-program-card-footer .vector-program-soon{background:#eef1f7;color:#7a869d}
+.vector-program-card-footer .vector-program-save{font-weight:700}
+@media(max-width:650px){.vector-profession-hero.vector-trial-hero{grid-template-columns:1fr;gap:14px;padding:16px}.vector-profession-hero .vector-profession-hero-image{width:100%;height:auto;aspect-ratio:16/10;max-height:260px;border-radius:16px}.vector-profession-hero .vector-trial-title h1{font-size:clamp(25px,7vw,34px);margin-top:8px}.vector-program-card-footer{gap:8px}.vector-program-card-footer .vector-program-link,.vector-program-card-footer .vector-program-soon,.vector-program-card-footer .vector-program-save{font-size:12px;padding:10px 8px;min-height:48px}}
+@media(max-width:360px){.vector-program-card-footer{grid-template-columns:1fr}.vector-program-card-footer .vector-program-link,.vector-program-card-footer .vector-program-soon,.vector-program-card-footer .vector-program-save{min-height:42px}}
