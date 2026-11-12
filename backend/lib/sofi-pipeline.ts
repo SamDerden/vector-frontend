@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import agePolicy from "@/config/age_policy.json";
-import llmConfig from "@/config/llm.config.json";
-import ragConfig from "@/config/rag.config.json";
-import validationPatterns from "@/config/validation_patterns.json";
-import promptManifest from "@/prompts/manifest.json";
+import agePolicy from "@/config/age_policy.json" with { type: "json" };
+import llmConfig from "@/config/llm.config.json" with { type: "json" };
+import ragConfig from "@/config/rag.config.json" with { type: "json" };
+import validationPatterns from "@/config/validation_patterns.json" with { type: "json" };
+import promptManifest from "@/prompts/manifest.json" with { type: "json" };
 import { estimateAgeFromGrade, isTrialEligibleForGrade } from "@/lib/ai/age";
 import { getFromCache, makeCacheKey, setCache } from "@/lib/ai/cache";
 import { type NormalizedCatalog, type NormalizedProfession } from "@/lib/ai/catalog";

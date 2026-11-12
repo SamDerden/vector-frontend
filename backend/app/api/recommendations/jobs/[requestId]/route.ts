@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { abuseGuard } from "@/lib/abuse-guard";
 import { isMissingSchemaError, query } from "@/lib/db";
 import { parseIdempotencyKey, publicErrorCode, publicJobAccess, READ_JOB_SQL, recoverInactiveGenerationJob, type GenerationJob } from "@/lib/generation-jobs";
 import { LINKED_RECOMMENDATION_SQL } from "@/lib/sofi-generate";
-import { handleError, jsonError } from "@/lib/http";
+import { handleError, jsonError, rateLimited } from "@/lib/http";
 import { savedRecommendationBody } from "@/lib/recommendation-view";
 import { requireExistingSession } from "@/lib/session";
 
@@ -16,24 +17,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function trialsFrom(hypotheses: unknown): unknown[] {
-  if (!Array.isArray(hypotheses)) return [];
-  const seen = new Set<string>();
-  const trials: unknown[] = [];
-  for (const item of hypotheses) {
-    const list = isRecord(item) && Array.isArray(item.trials) ? item.trials : [];
-    for (const trial of list) {
-      const id = isRecord(trial) ? String(trial.id ?? "") : "";
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
-      trials.push(trial);
-    }
-  }
-  return trials;
-}
-
-function completedBody(row: Record<string, unknown>, job: GenerationJob) {
-  const saved = savedRecommendationBody(row, trialsFrom(row.hypotheses));
+function completedBody(row: Record<string, unknown>, job: GenerationJob, trials: unknown[]) {
+  const saved = savedRecommendationBody(row, trials);
   const payload = isRecord(row.ai_payload) ? row.ai_payload : {};
   return {
     ...saved,
@@ -50,6 +35,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const session = await requireExistingSession(request);
     if ("error" in session) return session.error;
+    const limited = await abuseGuard.guardRead(session.sessionId);
+    if (!limited.ok) return rateLimited(limited.retryAfterMs);
     const { requestId: rawRequestId } = await context.params;
     const parsed = parseIdempotencyKey(rawRequestId);
     if (!parsed.ok || !parsed.key) return jsonError("Generation job not found", 404);
@@ -120,7 +107,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
         console.error("generation job completion was not recorded", error instanceof Error ? error.name : "unknown");
       });
     }
-    return NextResponse.json(completedBody(saved.rows[0], { ...job, status: "completed", recommendationId }));
+    const trialIds = Array.isArray(saved.rows[0].trial_ids) ? saved.rows[0].trial_ids : [];
+    const trials = trialIds.length === 0 ? [] : (await query(
+      `SELECT id, title, LEFT(COALESCE(description, ''), 220) AS description,
+              format, duration_minutes, municipality, cost, profession_id, source_url
+       FROM professional_trials WHERE id = ANY($1::uuid[])`,
+      [trialIds]
+    )).rows;
+    return NextResponse.json(completedBody(saved.rows[0], { ...job, status: "completed", recommendationId }, trials));
   } catch (error) {
     if (isMissingSchemaError(error)) {
       return jsonError("Database schema is outdated. Run npm run db:migrate", 503);

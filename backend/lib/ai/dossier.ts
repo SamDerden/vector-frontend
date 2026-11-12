@@ -1,9 +1,9 @@
 // lib/ai/dossier.ts
-import patterns from "@/config/validation_patterns.json";
-import agePolicy from "@/config/age_policy.json";
-import questionMaster from "@/data/bilet_questions_master.json";
-import clarificationMaster from "@/data/agent_clarification.json";
-import primaryClarificationMaster from "@/data/agent_clarification_1-4.json";
+import patterns from "@/config/validation_patterns.json" with { type: "json" };
+import agePolicy from "@/config/age_policy.json" with { type: "json" };
+import questionMaster from "@/data/bilet_questions_master.json" with { type: "json" };
+import clarificationMaster from "@/data/agent_clarification.json" with { type: "json" };
+import primaryClarificationMaster from "@/data/agent_clarification_1-4.json" with { type: "json" };
 
 // ---------- Типы (из задания) ----------
 export type DossierAnswer = {

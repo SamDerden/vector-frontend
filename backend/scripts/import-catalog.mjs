@@ -7,7 +7,7 @@ const apply = process.argv.includes("--apply");
 
 const file = path.resolve(
   "data",
-  "Навигатор ЕКБ v1.xlsx"
+  "Навигатор Екб v3.xlsx"
 );
 
 const workbook = new ExcelJS.Workbook();

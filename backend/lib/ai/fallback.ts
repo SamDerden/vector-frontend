@@ -1,7 +1,7 @@
-import agePolicy from "@/config/age_policy.json";
-import { Dossier } from "./dossier";
-import { PostprocessContext, postprocess } from "./postprocess";
-import { RetrievalResult } from "./retrieval";
+import agePolicy from "@/config/age_policy.json" with { type: "json" };
+import type { Dossier } from "./dossier";
+import { postprocess, type PostprocessContext } from "./postprocess";
+import type { RetrievalResult } from "./retrieval";
 
 export interface FallbackOptions {
   dossier: Dossier;
@@ -19,6 +19,8 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
   const warnings = new Set(dossier.warnings);
   retrieval.warnings.forEach((warning) => warnings.add(warning));
   warnings.add("llm_fallback_used");
+  const retrievalUnavailable = retrieval.warnings.includes("retrieval_failed");
+  if (retrievalUnavailable) warnings.add("retrieval_unavailable");
   if (retrieval.coverageGap || ctx.coverageGap) warnings.add("coverage_gap");
 
   if (dossier.answers.length < agePolicy.min_signal_answers) {
@@ -56,7 +58,7 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
     });
 
     return {
-      status: interestTags.length ? "fallback" : "no_match",
+      status: interestTags.length || retrievalUnavailable ? "fallback" : "no_match",
       generation: {
         mode: "retrieval_only" as const,
         tier: dossier.student.tier,
@@ -66,7 +68,9 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
       },
       summary: interestTags.length
         ? "Вот направления, которые можно исследовать."
-        : "Пока не нашли близкое направление. Давай попробуем что-то новое.",
+        : retrievalUnavailable
+          ? "Сейчас не удалось получить данные для подбора. Это техническая проблема, а не оценка твоих интересов."
+          : "Пока не нашли близкое направление. Давай попробуем что-то новое.",
       industries: [],
       interest_tags: interestTags,
       activity_ids: [],
@@ -111,7 +115,7 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
   postprocessWarnings.forEach((warning) => warnings.add(warning));
 
   return {
-    status: hypotheses.length ? "fallback" : "no_match",
+    status: hypotheses.length || retrievalUnavailable ? "fallback" : "no_match",
     generation: {
       mode: "retrieval_only" as const,
       tier: dossier.student.tier,
@@ -121,7 +125,9 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
     },
     summary: hypotheses.length
       ? "Подсказки собраны по ответам и данным каталога."
-      : "Пока не нашли близкие варианты в каталоге.",
+      : retrievalUnavailable
+        ? "Сервис временно не смог подобрать профессии. Это не означает, что подходящих вариантов нет."
+        : "Пока не нашли близкие варианты в каталоге.",
     industries: retrieval.industryIds.slice(0, 3).map((id) => ({
       industryId: id,
       name: ctx.industriesMap?.[id] ?? id,
@@ -132,7 +138,9 @@ export async function buildFallbackResponse(opts: FallbackOptions) {
     hypotheses,
     next_step: hypotheses.length
       ? "Выбери один вариант и узнай о нём больше."
-      : "Попробуй ответить на уточняющие вопросы или вернуться позже.",
+      : retrievalUnavailable
+        ? "Повтори получение рекомендаций позже — ответы можно сохранить."
+        : "Попробуй ответить на уточняющие вопросы или вернуться позже.",
     warnings: [...warnings],
     disclaimer: "Это предварительная подсказка, а не диагностика.",
   };

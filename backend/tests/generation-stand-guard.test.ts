@@ -24,6 +24,8 @@ test("the isolated stand does not reuse the existing database", () => {
   assert.doesNotMatch(standCompose, /navigator-postgres/);
   assert.doesNotMatch(standCompose, /navigator_pgdata/);
   assert.doesNotMatch(standCompose, /AI_API/);
+  const sync = readFileSync(new URL("../scripts/sync-hybrid-catalog.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(sync, /upsert\(``/);
   assert.equal(packageJson.scripts.test.includes("generation-stand.integration"), false);
   assert.equal(packageJson.scripts["test:generation-stand"].includes("generation-stand.integration.test.ts"), true);
 });

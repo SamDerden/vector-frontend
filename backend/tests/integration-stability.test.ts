@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-import { embeddingVectorsUsable, assessEmbeddingIndex, readRecordedEmbeddingModel } from "../lib/ai/index-contract.ts";
+import { embeddingVectorsUsable, assessEmbeddingIndex, readRecordedEmbeddingModel, EXPECTED_EMBEDDING_DIMENSIONS } from "../lib/ai/index-contract.ts";
 import { programsVisibleForTier, publicSkillName, resolveCatalogActivities } from "../lib/ai/presentation.ts";
 
 const vector = [0.25, 0.5];
@@ -110,6 +110,10 @@ test("shipped catalog index is accepted through its legacy model field", () => {
     chunks: unknown[];
   };
   assert.equal(typeof index.model, "string");
+  assert.equal(index.model, "EmbeddingsGigaR");
+  assert.equal(EXPECTED_EMBEDDING_DIMENSIONS, 2560);
+  const firstVector = (index.entries[0] as { vector?: unknown[] } | undefined)?.vector;
+  assert.equal(Array.isArray(firstVector) && firstVector.length, 2560);
   assert.equal(index.embedding_model, undefined);
   const matched = assessEmbeddingIndex({
     index,

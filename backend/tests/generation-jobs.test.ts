@@ -9,6 +9,7 @@ import {
   FAIL_JOB_SQL,
   KEEP_LEASE_SQL,
   generationInputHash,
+  isTransportFailure,
   loadOwnedRecommendation,
   parseIdempotencyKey,
   publicJobAccess,
@@ -227,7 +228,19 @@ function createWorld() {
 
   const deps: GenerateDeps = {
     query,
-    connect: async () => ({ query, release() {} }),
+    connect: async () => {
+      const client = {
+        marker: "pg-client",
+        query(this: { marker?: string }, sql: string, params?: unknown[]) {
+          if (this?.marker !== "pg-client") {
+            throw new TypeError("Cannot read properties of undefined (reading 'queryQueue')");
+          }
+          return query(sql, params);
+        },
+        release() {},
+      };
+      return client;
+    },
     pipeline: async (input) => {
       pipelinePrepared = input.prepared;
       pipelineCalls += 1;
@@ -561,6 +574,36 @@ test("retrieval_only is a completed job and a pipeline error leaves no recommend
   assert.equal(replay.ok, false);
   if (!replay.ok) assert.equal(replay.status, 502);
   assert.equal(failed.pipelineCalls(), 1);
+});
+
+test("ECONNABORTED is a transport failure and does not start a second generation", async () => {
+  const failed = createWorld();
+  const abort = Object.assign(new Error("timeout of 5000ms exceeded"), { code: "ECONNABORTED" });
+  assert.equal(isTransportFailure(abort), true);
+  failed.failPipeline(abort);
+  const outcome = await executeGenerate({
+    sessionId: SESSION_A,
+    body: {},
+    idempotencyKey: REQUEST_ID,
+    deps: failed.deps,
+  });
+  assert.equal(outcome.ok, false);
+  if (!outcome.ok) {
+    assert.equal(outcome.status, 502);
+    assert.equal(JSON.stringify(outcome).includes("timeout of 5000ms"), false);
+    assert.equal(JSON.stringify(outcome).includes("ECONNABORTED"), false);
+  }
+  const replay = await executeGenerate({
+    sessionId: SESSION_A,
+    body: {},
+    idempotencyKey: REQUEST_ID,
+    deps: failed.deps,
+  });
+  assert.equal(replay.ok, false);
+  if (!replay.ok) assert.equal(replay.status, 502);
+  assert.equal(failed.pipelineCalls(), 1);
+  assert.equal(failed.jobs()[0].status, "failed");
+  assert.equal(failed.jobs()[0].error_code, "pipeline_failed");
 });
 
 test("a failed commit does not keep a recommendation and leaves a failed job", async () => {

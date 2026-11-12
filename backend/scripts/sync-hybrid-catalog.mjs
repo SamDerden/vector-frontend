@@ -65,13 +65,24 @@ try {
       await q("UPDATE professions SET external_id=$1 WHERE id=$2",[item.profession_id,titleMatch.rows[0].id]);
       console.log("[Catalog sync] Reconciled existing profession by title:",item.profession_id,"previous external ID:",oldExternal);
     }
-    ids.professions.set(item.profession_id,await upsert(``INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
+    ids.professions.set(item.profession_id,await upsert(`INSERT INTO professions(external_id,title,description,industry_id,riasec,demand_level_region,salary_median_region,vacancies_count)
       VALUES($1,$2,$3,$4,$5::jsonb,$6,$7,$8) ON CONFLICT(external_id) DO UPDATE SET title=EXCLUDED.title,description=EXCLUDED.description,
       industry_id=EXCLUDED.industry_id,riasec=EXCLUDED.riasec,demand_level_region=EXCLUDED.demand_level_region,
       salary_median_region=EXCLUDED.salary_median_region,vacancies_count=EXCLUDED.vacancies_count RETURNING id`,
       [item.profession_id,item.name,text(item.what_does_kid),industryId,JSON.stringify(item.riasec??{}),
        text(item.current_market_state?.demand_level_region),item.current_market_state?.salary_median_rub??null,
        integer(item.current_market_state?.vacancies_count)]));
+    // Attach the approved graph ID to the same stable profession UUID.
+    // Reject collisions instead of reassigning a graph ID from another row.
+    const professionUuid = required(ids.professions,item.profession_id,"profession");
+    const graphOwner = await q("SELECT id FROM professions WHERE graph_profession_id=$1 FOR UPDATE",[item.profession_id]);
+    if (graphOwner.rows.length && graphOwner.rows[0].id !== professionUuid)
+      throw new Error(`Graph profession ID ${item.profession_id} belongs to another UUID`);
+    const graphIdentity = await q("SELECT graph_profession_id FROM professions WHERE id=$1 FOR UPDATE",[professionUuid]);
+    if (graphIdentity.rows[0]?.graph_profession_id && graphIdentity.rows[0].graph_profession_id !== item.profession_id)
+      throw new Error(`UUID for ${item.profession_id} already has a different graph ID`);
+    await q("UPDATE professions SET graph_profession_id=$1 WHERE id=$2 AND graph_profession_id IS NULL",
+      [item.profession_id,professionUuid]);
     for(const skill of item.skills??[]) {
       await q(`INSERT INTO profession_skills(profession_id,skill_id,importance) VALUES($1,$2,$3)
         ON CONFLICT(profession_id,skill_id) DO UPDATE SET importance=EXCLUDED.importance`,

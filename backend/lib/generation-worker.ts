@@ -86,6 +86,7 @@ export type WorkerDeps = GenerateDeps & {
   workerId?: string;
   renewEveryMs?: number;
   idleMs?: number;
+  concurrency?: number;
   generate?: (input: {
     job: GenerationJob;
     snapshot: GenerationInputSnapshot;
@@ -94,6 +95,23 @@ export type WorkerDeps = GenerateDeps & {
 };
 
 const RENEW_EVERY_MS = 30 * 1000;
+
+export function planWorkerCandidate(input: {
+  status: "pending" | "running" | "completed" | "failed";
+  attemptCount: number;
+  lockedUntilMs: number | null;
+  hasRecommendation: boolean;
+  nowMs: number;
+  maxAttempts?: number;
+}): "attach" | "exhaust" | "claim" | "leave" {
+  const maxAttempts = input.maxAttempts ?? MAX_GENERATION_ATTEMPTS;
+  const leaseOpen = input.lockedUntilMs !== null && input.lockedUntilMs >= input.nowMs;
+  const reclaimable = input.status === "pending" || (input.status === "running" && !leaseOpen);
+  if (!reclaimable) return "leave";
+  if (input.hasRecommendation) return "attach";
+  if (input.attemptCount >= maxAttempts) return "exhaust";
+  return "claim";
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -252,7 +270,7 @@ export function startGenerationWorker(deps: WorkerDeps): () => Promise<void> {
   const abort = new AbortController();
   // Claim distinct jobs with SKIP LOCKED. The advisory locks in limitedPipeline
   // remain the global ceiling across API requests and worker replicas.
-  const concurrency = 20;
+  const concurrency = Math.max(1, Math.min(20, Math.floor(deps.concurrency ?? 20)));
   const loops = Array.from({ length: concurrency }, (_, index) => (async () => {
     const workerDeps = { ...deps, workerId: `${deps.workerId ?? "generation"}-${index}` };
     while (!abort.signal.aborted) {

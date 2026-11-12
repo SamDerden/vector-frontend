@@ -409,11 +409,11 @@ test("stopping the worker leaves the next pending job untouched", async () => {
   let calls = 0;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => { release = resolve; });
-  const stop = startGenerationWorker(deps(store, async () => {
+  const stop = startGenerationWorker({ ...deps(store, async () => {
     calls += 1;
     await gate;
     return { ok: true, status: 201, body: {} } satisfies GenerateOutcome;
-  }));
+  }), concurrency: 1 });
   for (let attempt = 0; attempt < 50 && calls === 0; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -535,11 +535,11 @@ test("a restarted worker picks up the pending job left by the previous process",
   let calls = 0;
   let release: () => void = () => {};
   const gate = new Promise<void>((resolve) => { release = resolve; });
-  const stop = startGenerationWorker(deps(store, async () => {
+  const stop = startGenerationWorker({ ...deps(store, async () => {
     calls += 1;
     await gate;
     return { ok: true, status: 201, body: {} };
-  }));
+  }), concurrency: 1 });
   for (let attempt = 0; attempt < 50 && calls === 0; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
@@ -547,10 +547,10 @@ test("a restarted worker picks up the pending job left by the previous process",
   release();
   await stopping;
   assert.equal(store.jobs().filter((item) => item.status === "pending").length, 1);
-  const restarted = startGenerationWorker(deps(store, async () => {
+  const restarted = startGenerationWorker({ ...deps(store, async () => {
     calls += 1;
     return { ok: true, status: 201, body: {} };
-  }, "worker-b"));
+  }, "worker-b"), concurrency: 1 });
   for (let attempt = 0; attempt < 50 && calls < 2; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }

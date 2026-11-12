@@ -21,6 +21,7 @@ import {
   generationInputHash,
   KEEP_LEASE_SQL,
   publicErrorCode,
+  isTransportFailure,
   inProgressBody,
   loadOwnedRecommendation,
   readGenerationJob,
@@ -635,7 +636,7 @@ async function finishOwnedGeneration(source: {
     const pipelineDurationMs = Date.now() - pipelineStarted;
     console.error(
       "Sofi pipeline failed",
-      error instanceof Error ? error.name : "unknown error"
+      isTransportFailure(error) ? "transport" : error instanceof Error ? error.name : "unknown error"
     );
     if (ownedJob && ownFailure && ownedJob.lockedBy) {
       const failed = await failGenerationJob(input.deps.query, {
@@ -697,6 +698,7 @@ async function finishOwnedGeneration(source: {
   }
   const adapted = adaptSofiResult(sofiResult, mappingRows);
   console.log("[Sofi mapping] result:",JSON.stringify({rawHypotheses:sofiResult.hypotheses?.length??0,mapped:adapted.hypotheses.length,unmapped:adapted.unmapped.length,unmappedIds:adapted.unmapped.slice(0,5).map(item=>item.catalogProfessionId),generationMode:sofiResult.generation?.mode??null}));
+  console.log(JSON.stringify({ event: "sofi_mapping", rawHypotheses: sofiResult.hypotheses?.length ?? 0, mapped: adapted.hypotheses.length, unmapped: adapted.unmapped.length, generationMode: sofiResult.generation?.mode ?? null }));
   const junior = tier === "1-4";
   // Keep catalog-backed recommendations visible even when the legacy SQL
   // professions table has no graph_profession_id mapping. Do not invent UUIDs.

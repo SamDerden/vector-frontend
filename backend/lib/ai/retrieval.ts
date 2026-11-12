@@ -1,10 +1,11 @@
 // lib/ai/retrieval.ts
 import fs from "node:fs/promises";
-import { Dossier } from "./dossier";
-import ragConfig from "@/config/rag.config.json";
+import type { Dossier } from "./dossier";
+import ragConfig from "@/config/rag.config.json" with { type: "json" };
 import axios from "axios";
 import { embeddingVectorsUsable, readRecordedEmbeddingModel } from "./index-contract";
 import { gatewayEndpoint, readEmbeddingsGateway } from "./gateway-env";
+import { cosineSimilarity, lexicalSimilarity, selectRetrievalMode } from "./retrieval-mode";
 
 // ---------- Типы ----------
 export interface RetrievalResult {
@@ -49,20 +50,6 @@ interface NormalizedCatalogSnapshot {
 }
 
 // ---------- Утилиты ----------
-
-// Косинусное сходство
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  if (normA === 0 || normB === 0) return 0;
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
 
 // Запрос эмбеддинга через API (или мок для обхода VPN)
 async function getEmbeddings(
@@ -131,33 +118,6 @@ export function rrf(lists: string[][], k = ragConfig.rrf_k): Map<string, number>
     });
   }
   return scores;
-}
-
-function lexicalSimilarity(query: string, text: string): number {
-  const stopWords = new Set([
-    "которые", "который", "которых", "какие", "какая", "какой", "тебе", "твой",
-    "твоя", "твои", "больше", "всего", "нравится", "интересно", "делать", "работа",
-    "вопрос", "ответ", "школе", "будущем", "профессия", "профессии", "отрасль",
-  ]);
-  const tokens = (value: string) =>
-    new Set(
-      value.toLocaleLowerCase("ru").match(/[а-яёa-z0-9]{3,}/g)?.filter((token) => !stopWords.has(token)) ?? []
-    );
-  const queryTokens = tokens(query);
-  const textTokens = tokens(text);
-  if (queryTokens.size === 0 || textTokens.size === 0) return 0;
-  let intersection = 0;
-  for (const queryToken of queryTokens) {
-    const matched = [...textTokens].some((textToken) =>
-      queryToken === textToken ||
-      (
-        Math.min(queryToken.length, textToken.length) >= 5 &&
-        (queryToken.startsWith(textToken) || textToken.startsWith(queryToken))
-      )
-    );
-    if (matched) intersection++;
-  }
-  return intersection / Math.sqrt(queryTokens.size * textTokens.size);
 }
 
 function isUninformativeAnswer(part: string): boolean {
@@ -289,7 +249,12 @@ export async function retrieve(
       industryScores: {},
       coverageGap: false,
       uncoveredAnswerRefs: [],
-      mode: process.env.USE_MOCK_EMBEDDINGS === "true" ? "mock" : "semantic",
+      mode: selectRetrievalMode({
+        queryCount: 0,
+        mockEmbeddings: process.env.USE_MOCK_EMBEDDINGS === "true",
+        vectorsUsable: false,
+        semanticAvailable: false,
+      }),
       warnings: [],
     };
   }
@@ -352,7 +317,10 @@ export async function retrieve(
     } catch (error) {
       semanticAvailable = false;
       warnings.add("embedding_unavailable_lexical_fallback");
-      console.warn("[Retrieval] Тестовые эмбеддинги недоступны; используется локальный поиск.", error);
+      console.warn(
+        "[Retrieval] Тестовые эмбеддинги недоступны; используется локальный поиск.",
+        error instanceof Error ? error.name : "unknown"
+      );
     }
   } else if (vectorsUsable) {
     const remaining = options.deadlineAt === undefined
@@ -464,7 +432,13 @@ export async function retrieve(
     evidence[id] = Array.from(refsSet);
   }
 
-  console.log("[RAG E2E] retrieval mode:", isMock && vectorsUsable ? "mock" : semanticAvailable ? "semantic" : "lexical", "professions:", sortedProfessions.length, "warnings:", [...warnings].join(","));
+  const mode = selectRetrievalMode({
+    queryCount: queries.length,
+    mockEmbeddings: isMock,
+    vectorsUsable,
+    semanticAvailable,
+  });
+  console.log("[RAG E2E] retrieval mode:", mode, "professions:", sortedProfessions.length, "warnings:", [...warnings].join(","));
   return {
     industryIds: sortedIndustries,
     professionIds: sortedProfessions,
@@ -473,7 +447,7 @@ export async function retrieve(
     industryScores: Object.fromEntries(industryRrf),
     coverageGap: uncoveredAnswerRefs.size > 0,
     uncoveredAnswerRefs: [...uncoveredAnswerRefs],
-    mode: isMock && vectorsUsable ? "mock" : semanticAvailable ? "semantic" : "lexical",
+    mode,
     warnings: [...warnings],
   };
 }

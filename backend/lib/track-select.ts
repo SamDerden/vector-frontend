@@ -1,4 +1,11 @@
+import { isMissingSchemaError } from "./db.ts";
 import { trackSchema } from "./schemas.ts";
+import {
+  SESSION_CONFLICT_SQL,
+  SESSION_UPSERT_LEGACY_SQL,
+  SESSION_UPSERT_LIFETIME_SQL,
+  sessionLifetimeHours,
+} from "./session-lifetime.ts";
 
 export type DbQuery = (
   sql: string,
@@ -59,27 +66,27 @@ export async function executeTrackSelect(input: {
 
   const { trackType, schoolGrade, confidenceBefore } = parsed.data;
   const demoStudentId = isRecord(input.body) ? input.body.demoStudentId : undefined;
-  if (demoStudentId !== undefined &&
-      (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) ||
-       demoStudentId < 1 || demoStudentId > 15)) {
+  if (
+    demoStudentId !== undefined &&
+    (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) || demoStudentId < 1 || demoStudentId > 15)
+  ) {
     return { ok: false, status: 422, error: "Invalid demo student id" };
   }
   const sessionMode = demoStudentId === undefined ? "own" : "demo";
-  const lifetimeHours = sessionMode === "demo" ? 24 : 168;
-  const inserted = await input.query(
-    `INSERT INTO sessions (id, track_type, session_mode, expires_at, created_at, updated_at)
-     VALUES ($1, $2, $3, now() + ($4::integer * interval '1 hour'), now(), now())
-     ON CONFLICT (id)
-     DO UPDATE SET track_type = EXCLUDED.track_type, updated_at = now()
-     WHERE (sessions.expires_at IS NULL OR sessions.expires_at > now())
-       AND (sessions.session_mode IS NULL OR sessions.session_mode = EXCLUDED.session_mode)`,
-    [input.sessionId, trackType, sessionMode, lifetimeHours]
-  );
-  if (inserted.rowCount === 0) {
-    const current = await input.query(
-      "SELECT session_mode, expires_at <= now() AS expired FROM sessions WHERE id = $1",
-      [input.sessionId]
-    );
+  let inserted;
+  try {
+    inserted = await input.query(SESSION_UPSERT_LIFETIME_SQL, [
+      input.sessionId,
+      trackType,
+      sessionMode,
+      sessionLifetimeHours(sessionMode),
+    ]);
+  } catch (error) {
+    if (!isMissingSchemaError(error)) throw error;
+    inserted = await input.query(SESSION_UPSERT_LEGACY_SQL, [input.sessionId, trackType]);
+  }
+  if ((inserted.rowCount ?? 0) === 0) {
+    const current = await input.query(SESSION_CONFLICT_SQL, [input.sessionId]);
     if (current.rows[0]?.expired === true) {
       return { ok: false, status: 410, error: "Session expired. Start a new session." };
     }

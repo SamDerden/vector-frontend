@@ -1,5 +1,6 @@
 import axios from "axios";
-import {
+import { boundedAttemptTimeoutMs } from "./timeout-budget";
+import type {
   ChatMessage,
   ChatResponse,
   JsonSchemaResponseFormat,
@@ -7,7 +8,7 @@ import {
 } from "./client";
 import { isCircuitOpen, recordFailure, recordSuccess } from "./circuitBreaker";
 import { gatewayEndpoint, readChatGateway } from "../gateway-env";
-import llmConfig from "@/config/llm.config.json";
+import llmConfig from "@/config/llm.config.json" with { type: "json" };
 
 type ChatCompletionContent =
   | string
@@ -79,9 +80,10 @@ export class OpenAICompatibleClient implements LLMClient {
       const remainingBudget = deadlineAt - Date.now();
       if (remainingBudget <= 0) break;
 
-      const currentTimeout = opts.timeoutMs === 0
-        ? 0
-        : Math.min(opts.timeoutMs, llmConfig.attempt_timeout_ms, remainingBudget);
+      // A zero Axios timeout disables timeouts entirely. Always enforce the remaining deadline.
+      const currentTimeout = boundedAttemptTimeoutMs(
+        opts.timeoutMs, llmConfig.attempt_timeout_ms, remainingBudget
+      );
 
       const attemptStartedAt = Date.now();
       try {

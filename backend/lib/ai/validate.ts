@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { Schema14, Schema58, Schema911 } from "./schemas";
-import validationPatterns from "@/config/validation_patterns.json";
-import agePolicy from "@/config/age_policy.json";
-import promptManifest from "@/prompts/manifest.json";
+import validationPatterns from "@/config/validation_patterns.json" with { type: "json" };
+import agePolicy from "@/config/age_policy.json" with { type: "json" };
+import promptManifest from "@/prompts/manifest.json" with { type: "json" };
 
 export function extractJson(raw: string): string {
   const withoutFence = raw

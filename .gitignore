@@ -3,3 +3,6 @@ node_modules/
 *.tsbuildinfo
 .env.local
 .env.production.local
+/test-results/
+/playwright-report/
+/e2e/logs/

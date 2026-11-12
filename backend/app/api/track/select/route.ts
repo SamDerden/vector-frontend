@@ -28,8 +28,10 @@ export async function POST(request: NextRequest) {
       rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
         ? (rawBody as Record<string, unknown>).demoStudentId
         : undefined;
-    if (demoStudentId !== undefined &&
-        (!Number.isInteger(demoStudentId) || (demoStudentId as number) < 1 || (demoStudentId as number) > 15)) {
+    if (
+      demoStudentId !== undefined &&
+      (typeof demoStudentId !== "number" || !Number.isInteger(demoStudentId) || demoStudentId < 1 || demoStudentId > 15)
+    ) {
       return jsonError("Invalid demo student id", 422);
     }
     const mode = demoStudentId === undefined ? "own" : "demo";
@@ -41,22 +43,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(outcome.body, { status: 200 });
     }
 
-    // Fail closed if the deployment has no signing secret.
-    const proof = issueSessionProof(header.sessionId);
+    let proof: string;
+    try {
+      proof = issueSessionProof(header.sessionId);
+    } catch {
+      return jsonError("Session ownership is not configured", 503);
+    }
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
       // Serialize first-time claims of the same UUID across app instances.
       await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [header.sessionId]);
       const existing = await client.query("SELECT id FROM sessions WHERE id = $1", [header.sessionId]);
-      if (existing.rowCount) {
+      if ((existing.rowCount ?? 0) > 0) {
         const denied = authorizeSessionOwnership(request, header.sessionId);
         if (denied) {
           await client.query("ROLLBACK");
           return denied;
         }
       }
-
       const outcome = await executeTrackSelect({
         sessionId: header.sessionId,
         body: rawBody,
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
       }
       await client.query("COMMIT");
       const response = NextResponse.json(outcome.body, { status: 200 });
-      if (!existing.rowCount) {
+      if ((existing.rowCount ?? 0) === 0) {
         response.cookies.set(
           sessionProofCookieName(header.sessionId),
           proof,
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
       }
       return response;
     } catch (error) {
-      await client.query("ROLLBACK");
+      await client.query("ROLLBACK").catch(() => undefined);
       throw error;
     } finally {
       client.release();
