@@ -906,3 +906,13 @@
  .vector-analysis-screen{overflow:visible}
 }
 .vector-queue-notice img{object-fit:contain;object-position:center;flex-shrink:0}
+
+/* Primary-grade clarification choices: real character illustrations, not placeholder diamonds. */
+.demo-quiz-screen .primary-illustrated-option{min-width:0;overflow:hidden;display:flex;flex-direction:column;align-items:stretch}
+.demo-quiz-screen .primary-option-symbol{width:100%;height:126px;min-height:126px;padding:8px 10px 0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 65%,#e5fff3 0%,#eef2ff 58%,#fff 100%)}
+.demo-quiz-screen .primary-option-symbol img{width:100%;height:100%;max-width:150px;object-fit:contain;object-position:center bottom;display:block;filter:drop-shadow(0 6px 7px rgba(46,68,113,.12))}
+.demo-quiz-screen .primary-illustrated-option .illustrated-option-caption{width:100%;flex:1;align-items:center;min-height:84px;padding:12px;gap:10px}
+.demo-quiz-screen .primary-illustrated-option .illustrated-option-caption strong{overflow-wrap:break-word;word-break:normal;hyphens:auto}
+@media(max-width:640px){.demo-quiz-screen .primary-option-symbol{height:105px;min-height:105px;padding:7px 8px 0}.demo-quiz-screen .primary-option-symbol img{max-width:110px}.demo-quiz-screen .primary-illustrated-option .illustrated-option-caption{padding:10px 9px;min-height:105px;align-items:flex-start}.demo-quiz-screen .primary-illustrated-option .illustrated-option-caption strong{font-size:12px;line-height:1.4}}
+/* Keep the clarification guide clear of the next section and mobile browser chrome. */
+@media(max-width:640px){.demo-quiz-screen .clarification-bottom{min-height:0;margin-bottom:26px;padding-bottom:12px;align-items:center}.demo-quiz-screen .clarification-bottom>img{width:clamp(88px,25vw,125px);height:130px;object-fit:contain;object-position:center bottom;flex-shrink:0}.demo-quiz-screen .clarification-bottom-speech{min-width:0;overflow-wrap:break-word}}
