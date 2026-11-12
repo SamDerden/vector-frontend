@@ -20,6 +20,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: backend/package-lock.json
-      - run: npm ci
+      - name: Install locked backend dependencies
+        run: npm ci --no-audit --no-fund
       - name: Run all backend unit and integration-mock tests
         run: npm test
