@@ -8,7 +8,7 @@ const file=path.join(root,"data","Навигатор Екб v3.xlsx");
 const graph=JSON.parse(fs.readFileSync(path.join(root,"data","navigator_full_graph.json"),"utf8"));
 // Read XLSX with Python's standard-library ZIP/XML parser. ExcelJS 4.4 fails
 // on this valid workbook while loading workbook.xml (before audit logic runs).
-const python=String.raw\`
+const python=String.raw`
 import json, re, sys, zipfile, xml.etree.ElementTree as ET
 ns={'m':'http://schemas.openxmlformats.org/spreadsheetml/2006/main','r':'http://schemas.openxmlformats.org/officeDocument/2006/relationships'}
 rel_ns='{http://schemas.openxmlformats.org/package/2006/relationships}'
@@ -43,7 +43,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
       if cells: rows.append([cells.get(i,'') for i in range(1,max(cells)+1)])
     result[name]=rows
   print(json.dumps(result,ensure_ascii=False))
-\`;
+`;
 const workbookRows=JSON.parse(execFileSync("python3",["-c",python,file],{encoding:"utf8",maxBuffer:20*1024*1024}));
 const errors=[],warnings=[],report={excel:file,graphVersion:graph.meta?.version,sheets:{},comparisons:{}};
 const names=["industry","profession","skill","profession_skill","organization","education_program","program_profession","trial","trial_profession","vacancy_snapshot"];
